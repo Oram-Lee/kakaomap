@@ -135,22 +135,22 @@ function createCustomOverlay(position, text) {
   content.style.padding = '5px';
   content.style.fontSize = '12px';
   content.style.whiteSpace = 'nowrap';
-
+  
   content.innerHTML = text;
-
+  
   var overlay = new kakao.maps.CustomOverlay({
     position: position,
     content: content,
     map: null
   });
-
+  
   return overlay;
 }
 
 // 초기화 함수
 function initMap() {
   console.log('지도 초기화 시작');
-
+  
   try {
     // 지도 생성
     var mapContainer = document.getElementById('map');
@@ -158,10 +158,10 @@ function initMap() {
       center: new kakao.maps.LatLng(37.498095, 127.027610),
       level: 9
     };
-
+    
     var map = new kakao.maps.Map(mapContainer, mapOption);
     console.log('지도 생성 완료');
-
+    
     // 마커 생성 함수 정의 (이미지 URL 수정)
     function addStaffYangjaeMarker(lat, lng, info) {
       // 마커 생성
@@ -169,48 +169,48 @@ function initMap() {
         position: new kakao.maps.LatLng(lat, lng),
         map: map
       });
-
+      
       // 이름표 오버레이 생성
       var overlay = createCustomOverlay(marker.getPosition(), info);
-
+      
       // 마커에 클릭 이벤트 추가
       kakao.maps.event.addListener(marker, 'click', function() {
         overlay.setMap(map);
       });
-
+      
       // 맵 클릭 시 모든 오버레이 닫기 이벤트 추가
       kakao.maps.event.addListener(map, 'click', function() {
         overlay.setMap(null);
       });
-
+      
       staffYangjae.push(marker);
       return marker;
     }
-
+    
     function addStaffGangnamMarker(lat, lng, info) {
       // 마커 생성
       var marker = new kakao.maps.Marker({
         position: new kakao.maps.LatLng(lat, lng),
         map: map
       });
-
+      
       // 이름표 오버레이 생성
       var overlay = createCustomOverlay(marker.getPosition(), info);
-
+      
       // 마커에 클릭 이벤트 추가
       kakao.maps.event.addListener(marker, 'click', function() {
         overlay.setMap(map);
       });
-
+      
       // 맵 클릭 시 모든 오버레이 닫기 이벤트 추가
       kakao.maps.event.addListener(map, 'click', function() {
         overlay.setMap(null);
       });
-
+      
       staffGangnam.push(marker);
       return marker;
     }
-
+    
     // 직원 및 근무지 마커 추가
     var yangjaeOffice = new kakao.maps.Marker({position: new kakao.maps.LatLng(37.4841, 127.0356), map: map, title: '양재 근무지', image: new kakao.maps.MarkerImage('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png', new kakao.maps.Size(24, 35))}); officeYangjae.push(yangjaeOffice);
   var gangnamOffice = new kakao.maps.Marker({position: new kakao.maps.LatLng(37.4980, 127.0273), map: map, title: '강남 근무지', image: new kakao.maps.MarkerImage('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png', new kakao.maps.Size(24, 35))}); officeGangnam.push(gangnamOffice);
@@ -1301,24 +1301,24 @@ function initMap() {
   var marker1084 = addStaffGangnamMarker(37.4873001209776, 126.950155935997, '근무지: 강남<br>위치: 서울특별시 관악구 은천로 33길 5');
   var marker1085 = addStaffGangnamMarker(37.5005383834778, 127.023203781862, '근무지: 강남<br>위치: 서울특별시 서초구 서운로 194, ');
   var marker1086 = addStaffGangnamMarker(37.5866531311978, 127.020183607642, '근무지: 강남<br>위치: 서울특별시 성북구 보문로26길 18');
-
+    
     // GeoJSON 렌더링
     function renderGeoJSON() {
       if (!geojsonData || !geojsonData.features) {
         console.error('GeoJSON 데이터가 유효하지 않습니다.');
         return;
       }
-
+      
       geojsonData.features.forEach(function(feature, index) {
         if (!feature || !feature.properties || !feature.geometry || !feature.geometry.coordinates) {
           console.warn('유효하지 않은 feature at index', index);
           return;
         }
-
+        
         var color = feature.properties.sido === '11' ? '#FF0000' : // 서울
                     feature.properties.sido === '28' ? '#00FF00' : // 인천
                     '#0000FF'; // 경기
-
+        
         try {
           if (feature.geometry.type === 'Polygon') {
             var coordinates = feature.geometry.coordinates[0];
@@ -1326,19 +1326,19 @@ function initMap() {
               console.warn('유효하지 않은 Polygon coordinates at index', index);
               return;
             }
-
+            
             var path = coordinates.map(function(coord) {
               if (!coord || !Array.isArray(coord) || coord.length < 2) {
                 return null;
               }
               return new kakao.maps.LatLng(coord[1], coord[0]);
             }).filter(coord => coord !== null);
-
+            
             if (path.length === 0) {
               console.warn('유효한 좌표가 없음 at index', index);
               return;
             }
-
+            
             var polygon = new kakao.maps.Polygon({
               path: path,
               strokeWeight: 2,
@@ -1347,27 +1347,27 @@ function initMap() {
               fillColor: color,
               fillOpacity: 0.1
             });
-
+            
             polygon.setMap(map);
             boundaryPolygons.push(polygon);
-          }
+          } 
           else if (feature.geometry.type === 'MultiPolygon') {
             feature.geometry.coordinates.forEach(function(polygonCoords) {
               if (!polygonCoords || !Array.isArray(polygonCoords) || !polygonCoords[0]) {
                 return;
               }
-
+              
               var path = polygonCoords[0].map(function(coord) {
                 if (!coord || !Array.isArray(coord) || coord.length < 2) {
                   return null;
                 }
                 return new kakao.maps.LatLng(coord[1], coord[0]);
               }).filter(coord => coord !== null);
-
+              
               if (path.length === 0) {
                 return;
               }
-
+              
               var polygon = new kakao.maps.Polygon({
                 path: path,
                 strokeWeight: 2,
@@ -1376,7 +1376,7 @@ function initMap() {
                 fillColor: color,
                 fillOpacity: 0.1
               });
-
+              
               polygon.setMap(map);
               boundaryPolygons.push(polygon);
             });
@@ -1386,7 +1386,7 @@ function initMap() {
         }
       });
     }
-
+    
     // 지하철역 마커 추가
     function addStationMarkers() {
       Object.keys(subway_stations).forEach(function(station) {
@@ -1398,44 +1398,44 @@ function initMap() {
           map: null, // 초기에는 지도에 표시하지 않음
           title: station
         });
-
+        
         // 지하철역 이름표 오버레이 생성
         var overlay = createCustomOverlay(marker.getPosition(), station + ' 역');
-
+        
         // 마커에 클릭 이벤트 추가
         kakao.maps.event.addListener(marker, 'click', function() {
           overlay.setMap(map);
         });
-
+        
         // 맵 클릭 시 모든 오버레이 닫기 이벤트 추가
         kakao.maps.event.addListener(map, 'click', function() {
           overlay.setMap(null);
         });
-
+        
         stationMarkers.push(marker);
       });
     }
-
+    
     // GeoJSON 렌더링
     renderGeoJSON();
-
+    
     // 지하철역 마커 추가
     addStationMarkers();
-
+    
     // 마커 클러스터링 대신 간단한 그룹화 함수
     function updateMarkerVisibility() {
       var showYangjaeStaff = document.getElementById('show_staff_yangjae').checked;
       var showGangnamStaff = document.getElementById('show_staff_gangnam').checked;
-
+      
       staffYangjae.forEach(function(marker) {
         marker.setMap(showYangjaeStaff ? map : null);
       });
-
+      
       staffGangnam.forEach(function(marker) {
         marker.setMap(showGangnamStaff ? map : null);
       });
     }
-
+    
     // 컨트롤 설정 함수
     function setupControls() {
       document.getElementById('show_office_yangjae').addEventListener('change', function(e) {
@@ -1443,44 +1443,44 @@ function initMap() {
           marker.setMap(e.target.checked ? map : null);
         });
       });
-
+      
       document.getElementById('show_office_gangnam').addEventListener('change', function(e) {
         officeGangnam.forEach(function(marker) {
           marker.setMap(e.target.checked ? map : null);
         });
       });
-
+      
       document.getElementById('show_staff_yangjae').addEventListener('change', function(e) {
         updateMarkerVisibility();
       });
-
+      
       document.getElementById('show_staff_gangnam').addEventListener('change', function(e) {
         updateMarkerVisibility();
       });
-
+      
       document.getElementById('show_boundaries').addEventListener('change', function(e) {
         boundaryPolygons.forEach(function(polygon) {
           polygon.setMap(e.target.checked ? map : null);
         });
       });
-
+      
       document.getElementById('show_stations').addEventListener('change', function(e) {
         stationMarkers.forEach(function(marker) {
           marker.setMap(e.target.checked ? map : null);
         });
       });
-
+      
       document.getElementById('btn_show_all').addEventListener('click', function() {
         ['show_office_yangjae', 'show_office_gangnam', 'show_staff_yangjae',
          'show_staff_gangnam', 'show_boundaries', 'show_stations'].forEach(function(id) {
           document.getElementById(id).checked = true;
-
+          
           // 이벤트 직접 발생
           var event = new Event('change');
           document.getElementById(id).dispatchEvent(event);
         });
       });
-
+      
       document.getElementById('btn_save_html').addEventListener('click', function() {
         var blob = new Blob([document.documentElement.outerHTML], {type: 'text/html'});
         var url = URL.createObjectURL(blob);
@@ -1491,18 +1491,18 @@ function initMap() {
         URL.revokeObjectURL(url);
       });
     }
-
+    
     // 컨트롤 설정
     setupControls();
-
+    
     // 초기 업데이트
     updateMarkerVisibility();
-
+    
     // 로딩 인디케이터 제거
     document.getElementById('loading').style.display = 'none';
-
+    
     console.log('초기화 및 렌더링 완료');
-
+    
   } catch (e) {
     console.error('지도 초기화 중 오류:', e);
     document.getElementById('loading').innerHTML = '지도 초기화 중 오류가 발생했습니다.<br>' + e.message;
