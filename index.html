@@ -310,11 +310,11 @@ function initMap() {
       var position = new kakao.maps.LatLng(markerData.lat, markerData.lng);
       
   // 마커 생성 (이미지 마커로 변경)
-    var marker = new kakao.maps.Marker({
-    position: position,
-    title: '양재 직원 거주지',
-    image: new kakao.maps.MarkerImage('./green_gps.png', new kakao.maps.Size(24, 24))
-    });
+     var marker = new kakao.maps.Marker({
+     position: position,
+     title: '양재 직원 거주지',
+     image: new kakao.maps.MarkerImage('./green_gps.png', new kakao.maps.Size(24, 24))
+     });
   
       // 오버레이 생성
       var overlay = createCustomOverlay(position, '<div style="padding:5px;font-size:12px;">' + markerData.info + '</div>');
