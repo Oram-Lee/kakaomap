@@ -246,7 +246,7 @@ function initMap() {
       }
     ];
     
-    // 클러스터러 초기화
+    // 클러스터러 초기화 (초기에는 비활성화)
     var yangjaeClusterer = new kakao.maps.MarkerClusterer({
       map: map,
       averageCenter: true,
@@ -265,6 +265,10 @@ function initMap() {
       calculator: [10, 30, 50] // 클러스터 크기별 포함 마커 개수
     });
     
+    // 변수로 클러스터러 상태 추적
+    var isYangjaeClusteringEnabled = true;
+    var isGangnamClusteringEnabled = true;
+    
     // 지도 레벨 변경 감지 (특정 레벨에서만 마커 표시)
     kakao.maps.event.addListener(map, 'zoom_changed', function() {
       var level = map.getLevel();
@@ -273,12 +277,12 @@ function initMap() {
       // 클러스터러 처리 (레벨에 따른 표시 여부 결정)
       if (level <= DONG_LEVEL) {
         // 읍면동 레벨 이하에서는 개별 마커 표시
-        yangjaeClusterer.setMinLevel(0); // 클러스터링 비활성화
-        gangnamClusterer.setMinLevel(0); // 클러스터링 비활성화
+        if (isYangjaeClusteringEnabled) yangjaeClusterer.setMinLevel(0);
+        if (isGangnamClusteringEnabled) gangnamClusterer.setMinLevel(0);
       } else {
         // 읍면동 레벨 이상에서는 클러스터링 표시
-        yangjaeClusterer.setMinLevel(1); // 클러스터링 활성화
-        gangnamClusterer.setMinLevel(1); // 클러스터링 활성화
+        if (isYangjaeClusteringEnabled) yangjaeClusterer.setMinLevel(1);
+        if (isGangnamClusteringEnabled) gangnamClusterer.setMinLevel(1);
       }
     });
     
@@ -296,6 +300,10 @@ function initMap() {
     // 근무지 마커 추가
     var yangjaeOffice = new kakao.maps.Marker({position: new kakao.maps.LatLng(37.4841, 127.0356), map: map, title: '양재 근무지', image: new kakao.maps.MarkerImage('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png', new kakao.maps.Size(24, 35))}); officeMarkers.push(yangjaeOffice); officeYangjae.push(yangjaeOffice);
   var gangnamOffice = new kakao.maps.Marker({position: new kakao.maps.LatLng(37.4980, 127.0273), map: map, title: '강남 근무지', image: new kakao.maps.MarkerImage('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png', new kakao.maps.Size(24, 35))}); officeMarkers.push(gangnamOffice); officeGangnam.push(gangnamOffice);
+    
+    // 직원 마커 미리 생성 (최적화)
+    var yangjaeMarkersArray = []; // 양재 직원 마커 배열
+    var gangnamMarkersArray = []; // 강남 직원 마커 배열
     
     // 양재 직원 마커 생성
     yangjaeMarkers.forEach(function(markerData) {
@@ -320,9 +328,7 @@ function initMap() {
       
       // 마커 배열에 추가
       yangjaeStaffMarkers.push(marker);
-      
-      // 클러스터러에 마커 추가
-      yangjaeClusterer.addMarker(marker);
+      yangjaeMarkersArray.push(marker);
     });
     
     // 강남 직원 마커 생성
@@ -348,10 +354,17 @@ function initMap() {
       
       // 마커 배열에 추가
       gangnamStaffMarkers.push(marker);
-      
-      // 클러스터러에 마커 추가
-      gangnamClusterer.addMarker(marker);
+      gangnamMarkersArray.push(marker);
     });
+    
+    // 최초 마커 클러스터링 적용
+    if (yangjaeMarkersArray.length > 0) {
+      yangjaeClusterer.addMarkers(yangjaeMarkersArray);
+    }
+    
+    if (gangnamMarkersArray.length > 0) {
+      gangnamClusterer.addMarkers(gangnamMarkersArray);
+    }
     
     // 맵 클릭 시 오버레이 닫기
     kakao.maps.event.addListener(map, 'click', function() {
@@ -478,7 +491,7 @@ function initMap() {
     // 지하철역 마커 추가
     addStationMarkers();
     
-    // 컨트롤 설정 함수
+    // 컨트롤 설정 함수 - 성능 최적화된 버전
     function setupControls() {
       document.getElementById('show_office_yangjae').addEventListener('change', function(e) {
         officeYangjae.forEach(function(marker) {
@@ -492,24 +505,46 @@ function initMap() {
         });
       });
       
+      // 양재 직원 마커 표시/숨김 (성능 최적화)
       document.getElementById('show_staff_yangjae').addEventListener('change', function(e) {
-        yangjaeStaffMarkers.forEach(function(marker) {
-          if (e.target.checked) {
-            yangjaeClusterer.addMarker(marker);
+        if (e.target.checked) {
+          // 클러스터러에 마커 일괄 추가
+          yangjaeClusterer.addMarkers(yangjaeMarkersArray);
+          isYangjaeClusteringEnabled = true;
+          
+          // 현재 줌 레벨에 따라 클러스터링 여부 결정
+          var level = map.getLevel();
+          if (level <= DONG_LEVEL) {
+            yangjaeClusterer.setMinLevel(0);
           } else {
-            yangjaeClusterer.removeMarker(marker);
+            yangjaeClusterer.setMinLevel(1);
           }
-        });
+        } else {
+          // 클러스터러에서 마커 일괄 제거
+          yangjaeClusterer.clear();
+          isYangjaeClusteringEnabled = false;
+        }
       });
       
+      // 강남 직원 마커 표시/숨김 (성능 최적화)
       document.getElementById('show_staff_gangnam').addEventListener('change', function(e) {
-        gangnamStaffMarkers.forEach(function(marker) {
-          if (e.target.checked) {
-            gangnamClusterer.addMarker(marker);
+        if (e.target.checked) {
+          // 클러스터러에 마커 일괄 추가
+          gangnamClusterer.addMarkers(gangnamMarkersArray);
+          isGangnamClusteringEnabled = true;
+          
+          // 현재 줌 레벨에 따라 클러스터링 여부 결정
+          var level = map.getLevel();
+          if (level <= DONG_LEVEL) {
+            gangnamClusterer.setMinLevel(0);
           } else {
-            gangnamClusterer.removeMarker(marker);
+            gangnamClusterer.setMinLevel(1);
           }
-        });
+        } else {
+          // 클러스터러에서 마커 일괄 제거
+          gangnamClusterer.clear();
+          isGangnamClusteringEnabled = false;
+        }
       });
       
       document.getElementById('show_boundaries').addEventListener('change', function(e) {
@@ -525,13 +560,16 @@ function initMap() {
       });
       
       document.getElementById('btn_show_all').addEventListener('click', function() {
+        // 체크박스 상태 변경
         ['show_office_yangjae', 'show_office_gangnam', 'show_staff_yangjae',
          'show_staff_gangnam', 'show_boundaries', 'show_stations'].forEach(function(id) {
-          document.getElementById(id).checked = true;
-          
-          // 이벤트 직접 발생
-          var event = new Event('change');
-          document.getElementById(id).dispatchEvent(event);
+          var checkbox = document.getElementById(id);
+          if (!checkbox.checked) {
+            checkbox.checked = true;
+            // 이벤트 직접 발생
+            var event = new Event('change');
+            checkbox.dispatchEvent(event);
+          }
         });
       });
       
