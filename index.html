@@ -325,7 +325,7 @@ kakao.maps.event.addListener(map, 'zoom_changed', function() {
       
     });
     
-    // 클러스터 클릭 이벤트 (줌 인)
+/*    // 클러스터 클릭 이벤트 (줌 인)
     kakao.maps.event.addListener(yangjaeClusterer, 'clusterclick', function(cluster) {
       var level = map.getLevel() - 1;
       map.setLevel(level, { anchor: cluster.getCenter() });
@@ -334,6 +334,34 @@ kakao.maps.event.addListener(map, 'zoom_changed', function() {
     kakao.maps.event.addListener(gangnamClusterer, 'clusterclick', function(cluster) {
       var level = map.getLevel() - 1;
       map.setLevel(level, { anchor: cluster.getCenter() });
+    });
+  */
+
+    // 클러스터 클릭 이벤트 (줌 인)
+    kakao.maps.event.addListener(yangjaeClusterer, 'clusterclick', function(cluster) {
+      var level = map.getLevel() - 1;
+      map.setLevel(level, { anchor: cluster.getCenter() });
+  
+  // 최소 레벨에서는 클러스터를 강제로 다시 계산
+      if (level <= DONG_LEVEL) {
+        setTimeout(function() {
+          yangjaeClusterer.clear();
+          yangjaeClusterer.addMarkers(yangjaeMarkersArray);
+        }, 100); // 약간의 지연 후 실행
+      }
+    });
+
+    kakao.maps.event.addListener(gangnamClusterer, 'clusterclick', function(cluster) {
+      var level = map.getLevel() - 1;
+      map.setLevel(level, { anchor: cluster.getCenter() });
+  
+      // 최소 레벨에서는 클러스터를 강제로 다시 계산
+      if (level <= DONG_LEVEL) {
+        setTimeout(function() {
+          gangnamClusterer.clear();
+          gangnamClusterer.addMarkers(gangnamMarkersArray);
+        }, 100); // 약간의 지연 후 실행
+      }
     });
     
     // 근무지 마커 추가
