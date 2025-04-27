@@ -273,7 +273,7 @@ function initMap() {
     kakao.maps.event.addListener(map, 'zoom_changed', function() {
       var level = map.getLevel();
       console.log('지도 레벨 변경:', level);
-      
+      /*
       // 클러스터러 처리 (레벨에 따른 표시 여부 결정)
       if (level <= DONG_LEVEL) {
         // 읍면동 레벨 이하에서는 개별 마커 표시
@@ -284,6 +284,45 @@ function initMap() {
         if (isYangjaeClusteringEnabled) yangjaeClusterer.setMinLevel(1);
         if (isGangnamClusteringEnabled) gangnamClusterer.setMinLevel(1);
       }
+      */
+
+// 지도 레벨 변경 감지 (특정 레벨에서만 마커 표시)
+kakao.maps.event.addListener(map, 'zoom_changed', function() {
+  var level = map.getLevel();
+  console.log('지도 레벨 변경:', level);
+  
+  // 클러스터러 처리 (레벨에 따른 표시 여부 결정)
+  if (level <= DONG_LEVEL) {
+    // 읍면동 레벨 이하에서는 개별 마커 표시 (하지만 클러스터링은 유지)
+    if (isYangjaeClusteringEnabled) {
+      yangjaeClusterer.setMinLevel(0);
+      // 클러스터 재계산 강제 실행
+      yangjaeClusterer.clear();
+      yangjaeClusterer.addMarkers(yangjaeMarkersArray);
+    }
+    if (isGangnamClusteringEnabled) {
+      gangnamClusterer.setMinLevel(0);
+      // 클러스터 재계산 강제 실행 
+      gangnamClusterer.clear();
+      gangnamClusterer.addMarkers(gangnamMarkersArray);
+    }
+  } else {
+    // 읍면동 레벨 이상에서는 클러스터링 표시
+    if (isYangjaeClusteringEnabled) {
+      yangjaeClusterer.setMinLevel(1);
+      // 클러스터 재계산 강제 실행
+      yangjaeClusterer.clear();
+      yangjaeClusterer.addMarkers(yangjaeMarkersArray);
+    }
+    if (isGangnamClusteringEnabled) {
+      gangnamClusterer.setMinLevel(1);
+      // 클러스터 재계산 강제 실행
+      gangnamClusterer.clear();
+      gangnamClusterer.addMarkers(gangnamMarkersArray);
+    }
+  }
+});
+      
     });
     
     // 클러스터 클릭 이벤트 (줌 인)
