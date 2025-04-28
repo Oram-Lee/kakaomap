@@ -161,6 +161,9 @@ function initMap() {
   console.log('지도 초기화 시작');
   
   try {
+
+
+    /*
     // 지도 생성
     var mapContainer = document.getElementById('map');
     var mapOption = {
@@ -169,6 +172,22 @@ function initMap() {
     };
     
     var map = new kakao.maps.Map(mapContainer, mapOption);
+    console.log('지도 생성 완료');
+    */
+
+    // 지도 생성
+    var mapContainer = document.getElementById('map');
+    var mapOption = {
+      center: new kakao.maps.LatLng(37.498095, 127.027610),
+      level: 9,  // 초기 줌 레벨 (서울 전체 보임)
+      mapTypeId: kakao.maps.MapTypeId.ROADMAP  // 지도 타입 설정 (기본 도로맵)
+    };
+    
+    var map = new kakao.maps.Map(mapContainer, mapOption);
+    
+    // 지도 컨트롤 최소화 (선택사항)
+    map.removeControl(kakao.maps.MapTypeControl);
+    
     console.log('지도 생성 완료');
     
     // 클러스터러 스타일 정의
