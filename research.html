@@ -1411,8 +1411,8 @@
             
             customOverlay.setMap(map);
             
-            // 클릭 이벤트
-            const overlayContent = customOverlay.getContent();
+            // 클릭 이벤트 - const를 let으로 변경
+            let overlayContent = customOverlay.getContent();
             if (typeof overlayContent === 'string') {
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = overlayContent;
