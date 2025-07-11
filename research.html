@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>테헤란로 빌딩 현장조사 지도</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        #header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        #header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 500;
+        }
+        
+        #header p {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        #controls {
+            background: white;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .investigator-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 500;
+            position: relative;
+        }
+        
+        .investigator-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .investigator-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .investigator-btn .count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #e74c3c;
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        #map {
+            width: 100%;
+            height: calc(100vh - 160px);
+        }
+        
+        .custom-overlay {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .building-info {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 300px;
+        }
+        
+        .building-info h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        .building-info p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .building-info .order {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 150px;
+        }
+        
+        #legend h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        
+        #stats {
+            position: absolute;
+            top: 160px;
+            left: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 13px;
+            min-width: 200px;
+        }
+        
+        #stats h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        
+        .show-all-btn {
+            background: #27ae60;
+            color: white;
+            margin-left: 20px;
+        }
+        
+        .show-all-btn.active {
+            background: #e74c3c;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.2);
+            z-index: 9999;
+            text-align: center;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .station-marker {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(52, 152, 219, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(52, 152, 219, 0);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            #header h1 {
+                font-size: 20px;
+            }
+            
+            #controls {
+                padding: 10px;
+            }
+            
+            .investigator-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            #legend {
+                bottom: 10px;
+                right: 10px;
+                padding: 10px;
+            }
+            
+            #stats {
+                left: 10px;
+                top: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div>지도를 로딩중입니다...</div>
+    </div>
+    
+    <div id="header">
+        <h1>🏢 테헤란로 빌딩 현장조사 지도</h1>
+        <p>총 173개 빌딩 | 8명 조사원</p>
+    </div>
+    
+    <div id="controls">
+        <button class="investigator-btn show-all-btn" onclick="toggleAll()">전체 보기</button>
+        <button class="investigator-btn" onclick="selectInvestigator('소나무')">
+            소나무
+            <span class="count">22</span>
+        </button>
+        <button class="investigator-btn" onclick="selectInvestigator('안준희')">
+            안준희
+            <span class="count">22</span>
+        </button>
+        <button class="investigator-btn" onclick="selectInvestigator('남민준')">
+            남민준
+            <span class="count">22</span>
+        </button>
+        <button class="investigator-btn" onclick="selectInvestigator('이슬비')">
+            이슬비
+            <span class="count">22</span>
+        </button>
+        <button class="investigator-btn" onclick="selectInvestigator('오시영')">
+            오시영
+            <span class="count">22</span>
+        </button>
+        <button class="investigator-btn" onclick="selectInvestigator('조은아')">
+            조은아
+            <span class="count">21</span>
+        </button>
+        <button class="investigator-btn" onclick="selectInvestigator('이오람')">
+            이오람
+            <span class="count">21</span>
+        </button>
+        <button class="investigator-btn" onclick="selectInvestigator('심정원')">
+            심정원
+            <span class="count">21</span>
+        </button>
+    </div>
+    
+    <div id="map"></div>
+    
+    <div id="stats" style="display: none;">
+        <h4>현재 선택</h4>
+        <div id="stats-content"></div>
+    </div>
+    
+    <div id="legend">
+        <h4>담당자별 색상</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e74c3c;"></div>
+            <span>소나무</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f39c12;"></div>
+            <span>안준희</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #27ae60;"></div>
+            <span>남민준</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #3498db;"></div>
+            <span>이슬비</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #9b59b6;"></div>
+            <span>오시영</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #1abc9c;"></div>
+            <span>조은아</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e67e22;"></div>
+            <span>이오람</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #34495e;"></div>
+            <span>심정원</span>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=YOUR_KAKAO_API_KEY&libraries=services"></script>
+    <script>
+        // 담당자별 색상 정의
+        const investigatorColors = {"소나무": "#e74c3c", "안준희": "#f39c12", "남민준": "#27ae60", "이슬비": "#3498db", "오시영": "#9b59b6", "조은아": "#1abc9c", "이오람": "#e67e22", "심정원": "#34495e"};
+
+        // 빌딩 데이터
+        const buildingData = {
+  "소나무": [
+    {
+      "order": 1,
+      "name": "이즈타워",
+      "address": "서울 강남구 테헤란로 101",
+      "nearestStation": "강남역",
+      "distance": 0.09030709073624528,
+      "lat": 37.4986232309429,
+      "lon": 127.028065727387
+    },
+    {
+      "order": 2,
+      "name": "서림빌딩",
+      "address": "서울 강남구 테헤란로 115",
+      "nearestStation": "강남역",
+      "distance": 0.2409291623466511,
+      "lat": 37.4990612091283,
+      "lon": 127.029905723263
+    },
+    {
+      "order": 3,
+      "name": "강남WD빌딩",
+      "address": "서울 강남구 테헤란로8길 13",
+      "nearestStation": "강남역",
+      "distance": 0.3677838581373982,
+      "lat": 37.4979976258881,
+      "lon": 127.031767156852
+    },
+    {
+      "order": 4,
+      "name": "강남파이낸스센터(GFC)",
+      "address": "서울 강남구 테헤란로 152",
+      "nearestStation": "역삼역",
+      "distance": 0.0773619522832385,
+      "lat": 37.5000242405515,
+      "lon": 127.036508620542
+    },
+    {
+      "order": 5,
+      "name": "서울인터내셔널타워(SI타워)",
+      "address": "서울 강남구 테헤란로 203",
+      "nearestStation": "역삼역",
+      "distance": 0.1603674289941737,
+      "lat": 37.5015976461467,
+      "lon": 127.037722864045
+    },
+    {
+      "order": 6,
+      "name": "포스코타워 역삼",
+      "address": "서울 강남구 테헤란로 134",
+      "nearestStation": "역삼역",
+      "distance": 0.2649545990261393,
+      "lat": 37.4993753300832,
+      "lon": 127.033803449711
+    },
+    {
+      "order": 7,
+      "name": "호산빌딩",
+      "address": "서울 강남구 테헤란로 130",
+      "nearestStation": "역삼역",
+      "distance": 0.3526858212207756,
+      "lat": 37.4991855041824,
+      "lon": 127.032787264974
+    },
+    {
+      "order": 8,
+      "name": "큰길타워",
+      "address": "서울 강남구 테헤란로 223",
+      "nearestStation": "역삼역",
+      "distance": 0.4295866580112111,
+      "lat": 37.5024001842287,
+      "lon": 127.040672852455
+    },
+    {
+      "order": 9,
+      "name": "선데이브런치",
+      "address": "서울 강남구 테헤란로38길 40-9",
+      "nearestStation": "역삼역",
+      "distance": 0.5432106146141761,
+      "lat": 37.4996205482034,
+      "lon": 127.042305481385
+    },
+    {
+      "order": 10,
+      "name": "삼성제일빌딩",
+      "address": "서울 강남구 테헤란로 309",
+      "nearestStation": "역삼역",
+      "distance": 0.7845639994157121,
+      "lat": 37.5035572530344,
+      "lon": 127.04443196555
+    },
+    {
+      "order": 11,
+      "name": "상경빌딩",
+      "address": "서울 강남구 테헤란로51길 21",
+      "nearestStation": "역삼역",
+      "distance": 0.9797553431268081,
+      "lat": 37.5050846936468,
+      "lon": 127.04593378479
+    },
+    {
+      "order": 12,
+      "name": "신도벤처타워",
+      "address": "서울 강남구 테헤란로 333",
+      "nearestStation": "역삼역",
+      "distance": 1.124795669882227,
+      "lat": 37.5046966146085,
+      "lon": 127.048013395254
+    },
+    {
+      "order": 13,
+      "name": "이케이타워(EK타워)",
+      "address": "서울 강남구 테헤란로 407",
+      "nearestStation": "역삼역",
+      "distance": 1.325230936262832,
+      "lat": 37.505392761745,
+      "lon": 127.050109429191
+    },
+    {
+      "order": 14,
+      "name": "연봉빌딩",
+      "address": "서울 강남구 테헤란로 416",
+      "nearestStation": "역삼역",
+      "distance": 1.457320296603191,
+      "lat": 37.504996534161,
+      "lon": 127.051907408986
+    },
+    {
+      "order": 15,
+      "name": "현대타워",
+      "address": "서울 강남구 테헤란로 423",
+      "nearestStation": "역삼역",
+      "distance": 1.600862440394096,
+      "lat": 37.5062216594214,
+      "lon": 127.053059944282
+    },
+    {
+      "order": 16,
+      "name": "MSA빌딩",
+      "address": "서울 강남구 테헤란로78길 12",
+      "nearestStation": "역삼역",
+      "distance": 1.746725298912954,
+      "lat": 37.5054177090296,
+      "lon": 127.055187083827
+    },
+    {
+      "order": 17,
+      "name": "에이타워",
+      "address": "서울 강남구 테헤란로79길 11-1",
+      "nearestStation": "역삼역",
+      "distance": 1.821789107045685,
+      "lat": 37.5075825315026,
+      "lon": 127.0550417592
+    },
+    {
+      "order": 18,
+      "name": "싹타워",
+      "address": "서울 강남구 테헤란로 505",
+      "nearestStation": "역삼역",
+      "distance": 2.0152374613315,
+      "lat": 37.5075694059412,
+      "lon": 127.057440735405
+    },
+    {
+      "order": 19,
+      "name": "동구빌딩",
+      "address": "서울 강남구 테헤란로86길 15",
+      "nearestStation": "역삼역",
+      "distance": 2.144141563905867,
+      "lat": 37.5064466344777,
+      "lon": 127.059502015213
+    },
+    {
+      "order": 20,
+      "name": "융전빌딩",
+      "address": "서울 강남구 테헤란로87길 33",
+      "nearestStation": "역삼역",
+      "distance": 2.160752125357482,
+      "lat": 37.5098248337983,
+      "lon": 127.057926776835
+    },
+    {
+      "order": 21,
+      "name": "홍우빌딩",
+      "address": "서울 강남구 테헤란로 522",
+      "nearestStation": "역삼역",
+      "distance": 2.349984824691341,
+      "lat": 37.5079048695184,
+      "lon": 127.061344352436
+    },
+    {
+      "order": 22,
+      "name": "대치엠디엠빌딩",
+      "address": "서울 강남구 테헤란로108길 42",
+      "nearestStation": "역삼역",
+      "distance": 2.727488125428912,
+      "lat": 37.5068182254549,
+      "lon": 127.066242271781
+    }
+  ],
+  "안준희": [
+    {
+      "order": 1,
+      "name": "인춘재단빌딩",
+      "address": "서울 강남구 테헤란로 103",
+      "nearestStation": "강남역",
+      "distance": 0.1013726507052433,
+      "lat": 37.4985941518782,
+      "lon": 127.028344929536
+    },
+    {
+      "order": 2,
+      "name": "비전타워",
+      "address": "서울 강남구 테헤란로2길 27",
+      "nearestStation": "강남역",
+      "distance": 0.2423457821950945,
+      "lat": 37.4964929427239,
+      "lon": 127.029697867857
+    },
+    {
+      "order": 3,
+      "name": "삼원타워(구 풍림빌딩)",
+      "address": "서울 강남구 테헤란로 124",
+      "nearestStation": "강남역",
+      "distance": 0.3751416765141987,
+      "lat": 37.4987846719974,
+      "lon": 127.031703595662
+    },
+    {
+      "order": 4,
+      "name": "더피나클역삼2(구.우신빌딩)",
+      "address": "서울 강남구 테헤란로 145",
+      "nearestStation": "역삼역",
+      "distance": 0.09769247983372206,
+      "lat": 37.5007127382074,
+      "lon": 127.035192693211
+    },
+    {
+      "order": 5,
+      "name": "대세빌딩",
+      "address": "서울 강남구 테헤란로26길 14",
+      "nearestStation": "역삼역",
+      "distance": 0.1617482715926887,
+      "lat": 37.4992740577327,
+      "lon": 127.035937610629
+    },
+    {
+      "order": 6,
+      "name": "KFAS Tower(한국고등교육재단빌딩)",
+      "address": "서울 강남구 테헤란로 211",
+      "nearestStation": "역삼역",
+      "distance": 0.2911202125389185,
+      "lat": 37.5018865544268,
+      "lon": 127.03924172804
+    },
+    {
+      "order": 7,
+      "name": "강남N타워",
+      "address": "서울 강남구 테헤란로 129",
+      "nearestStation": "역삼역",
+      "distance": 0.3572246681823841,
+      "lat": 37.4999326440603,
+      "lon": 127.032367803374
+    },
+    {
+      "order": 8,
+      "name": "태왕빌딩",
+      "address": "서울 강남구 테헤란로 226",
+      "nearestStation": "역삼역",
+      "distance": 0.4386910257033487,
+      "lat": 37.5017572619977,
+      "lon": 127.041091058175
+    },
+    {
+      "order": 9,
+      "name": "SKW(구.클래시스타워)",
+      "address": "서울 강남구 테헤란로 240",
+      "nearestStation": "역삼역",
+      "distance": 0.5653401110942993,
+      "lat": 37.5021271846012,
+      "lon": 127.042450975898
+    },
+    {
+      "order": 10,
+      "name": "대아빌딩",
+      "address": "서울 강남구 테헤란로44길 5",
+      "nearestStation": "역삼역",
+      "distance": 0.7980505751180997,
+      "lat": 37.5026271947634,
+      "lon": 127.045014411777
+    },
+    {
+      "order": 11,
+      "name": "아이타워",
+      "address": "서울 강남구 테헤란로 326",
+      "nearestStation": "역삼역",
+      "distance": 0.9983788947531703,
+      "lat": 37.5035470555751,
+      "lon": 127.047033596011
+    },
+    {
+      "order": 12,
+      "name": "교정공제회 선릉빌딩",
+      "address": "서울 강남구 테헤란로 334",
+      "nearestStation": "역삼역",
+      "distance": 1.137408065339197,
+      "lat": 37.5039452362982,
+      "lon": 127.048527611976
+    },
+    {
+      "order": 13,
+      "name": "금강타워",
+      "address": "서울 강남구 테헤란로 410",
+      "nearestStation": "역삼역",
+      "distance": 1.343146489933467,
+      "lat": 37.5045559137175,
+      "lon": 127.050729430264
+    },
+    {
+      "order": 14,
+      "name": "L7 강남타워",
+      "address": "서울 강남구 테헤란로 415",
+      "nearestStation": "역삼역",
+      "distance": 1.458720942907024,
+      "lat": 37.5057885877997,
+      "lon": 127.051541631852
+    },
+    {
+      "order": 15,
+      "name": "대치타워",
+      "address": "서울 강남구 테헤란로 424",
+      "nearestStation": "역삼역",
+      "distance": 1.605452477751689,
+      "lat": 37.5054927426087,
+      "lon": 127.053467711791
+    },
+    {
+      "order": 16,
+      "name": "승광빌딩",
+      "address": "서울 강남구 테헤란로77길 17",
+      "nearestStation": "역삼역",
+      "distance": 1.747441547866023,
+      "lat": 37.507494909937,
+      "lon": 127.054162109062
+    },
+    {
+      "order": 17,
+      "name": "애플트리타워(테리타워)",
+      "address": "서울 강남구 테헤란로 443",
+      "nearestStation": "역삼역",
+      "distance": 1.838582908675198,
+      "lat": 37.5069494959122,
+      "lon": 127.055596615858
+    },
+    {
+      "order": 18,
+      "name": "해성2빌딩",
+      "address": "서울 강남구 테헤란로 508",
+      "nearestStation": "역삼역",
+      "distance": 2.029644506412917,
+      "lat": 37.5068166240241,
+      "lon": 127.057978287882
+    },
+    {
+      "order": 19,
+      "name": "대경타워",
+      "address": "서울 강남구 테헤란로86길 13",
+      "nearestStation": "역삼역",
+      "distance": 2.146137100082945,
+      "lat": 37.5065996439171,
+      "lon": 127.059464700701
+    },
+    {
+      "order": 20,
+      "name": "신도빌딩",
+      "address": "서울 강남구 테헤란로88길 14",
+      "nearestStation": "역삼역",
+      "distance": 2.166510186451259,
+      "lat": 37.5065624828205,
+      "lon": 127.059721972597
+    },
+    {
+      "order": 21,
+      "name": "파르나스타워",
+      "address": "서울 강남구 테헤란로 521",
+      "nearestStation": "역삼역",
+      "distance": 2.358997846941467,
+      "lat": 37.5091916919873,
+      "lon": 127.06080691987
+    },
+    {
+      "order": 22,
+      "name": "서경빌딩",
+      "address": "서울 강남구 테헤란로108길 22",
+      "nearestStation": "역삼역",
+      "distance": 2.735331595971231,
+      "lat": 37.5079454653592,
+      "lon": 127.065933143302
+    }
+  ],
+  "남민준": [
+    {
+      "order": 1,
+      "name": "캠브리지강남빌딩",
+      "address": "서울 강남구 테헤란로 110",
+      "nearestStation": "강남역",
+      "distance": 0.1583193344859952,
+      "lat": 37.4980657284682,
+      "lon": 127.029382413368
+    },
+    {
+      "order": 2,
+      "name": "동경빌딩",
+      "address": "서울 강남구 테헤란로 116",
+      "nearestStation": "강남역",
+      "distance": 0.2665936781656741,
+      "lat": 37.4984820624077,
+      "lon": 127.030531543748
+    },
+    {
+      "order": 3,
+      "name": "건설회관",
+      "address": "서울 강남구 테헤란로7길 12",
+      "nearestStation": "강남역",
+      "distance": 0.3801009178048019,
+      "lat": 37.5000152767992,
+      "lon": 127.030984639656
+    },
+    {
+      "order": 4,
+      "name": "아주빌딩",
+      "address": "서울 강남구 테헤란로 201",
+      "nearestStation": "역삼역",
+      "distance": 0.1030608998687359,
+      "lat": 37.5013114792348,
+      "lon": 127.037177957874
+    },
+    {
+      "order": 5,
+      "name": "한중앙빌딩",
+      "address": "서울 강남구 테헤란로 139-1",
+      "nearestStation": "역삼역",
+      "distance": 0.1638897456244566,
+      "lat": 37.5004396757708,
+      "lon": 127.034471388344
+    },
+    {
+      "order": 6,
+      "name": "한국지식재산센터",
+      "address": "서울 강남구 테헤란로 131",
+      "nearestStation": "역삼역",
+      "distance": 0.3044477267235102,
+      "lat": 37.5000818732753,
+      "lon": 127.032937953168
+    },
+    {
+      "order": 7,
+      "name": "서울철강빌딩",
+      "address": "서울 강남구 테헤란로33길 18",
+      "nearestStation": "역삼역",
+      "distance": 0.370499794139348,
+      "lat": 37.5030024186436,
+      "lon": 127.039335954001
+    },
+    {
+      "order": 8,
+      "name": "조이타워",
+      "address": "서울 강남구 테헤란로37길 7",
+      "nearestStation": "역삼역",
+      "distance": 0.4475417084746218,
+      "lat": 37.5027877189554,
+      "lon": 127.040637438123
+    },
+    {
+      "order": 9,
+      "name": "조이시티타워(구 수내파이낸스타워)",
+      "address": "서울 강남구 테헤란로 301",
+      "nearestStation": "역삼역",
+      "distance": 0.6551991021413496,
+      "lat": 37.5031256356337,
+      "lon": 127.043068810036
+    },
+    {
+      "order": 10,
+      "name": "비전타워",
+      "address": "서울 강남구 테헤란로 312",
+      "nearestStation": "역삼역",
+      "distance": 0.8107085238483064,
+      "lat": 37.502938570166,
+      "lon": 127.045046265048
+    },
+    {
+      "order": 11,
+      "name": "어반벤치",
+      "address": "서울 강남구 테헤란로 325",
+      "nearestStation": "역삼역",
+      "distance": 1.00316161381966,
+      "lat": 37.5042454446246,
+      "lon": 127.04675694889
+    },
+    {
+      "order": 12,
+      "name": "EGI엔지니어링공제 빌딩",
+      "address": "서울 강남구 테헤란로 335",
+      "nearestStation": "역삼역",
+      "distance": 1.14591999741752,
+      "lat": 37.5047542755875,
+      "lon": 127.048242792455
+    },
+    {
+      "order": 13,
+      "name": "동신빌딩",
+      "address": "서울 강남구 테헤란로 409",
+      "nearestStation": "역삼역",
+      "distance": 1.346367743894988,
+      "lat": 37.5053601174069,
+      "lon": 127.050386949115
+    },
+    {
+      "order": 14,
+      "name": "다봉타워",
+      "address": "서울 강남구 테헤란로 418",
+      "nearestStation": "역삼역",
+      "distance": 1.487300441178108,
+      "lat": 37.5050979384459,
+      "lon": 127.052222794462
+    },
+    {
+      "order": 15,
+      "name": "신일빌딩",
+      "address": "서울 강남구 테헤란로 425",
+      "nearestStation": "역삼역",
+      "distance": 1.628397604116995,
+      "lat": 37.5062489042304,
+      "lon": 127.053383426803
+    },
+    {
+      "order": 16,
+      "name": "노벨빌딩",
+      "address": "서울 강남구 테헤란로78길 16",
+      "nearestStation": "역삼역",
+      "distance": 1.748064663805127,
+      "lat": 37.5050615609923,
+      "lon": 127.05533837197
+    },
+    {
+      "order": 17,
+      "name": "포스코센터",
+      "address": "서울 강남구 테헤란로 440",
+      "nearestStation": "역삼역",
+      "distance": 1.839485334974952,
+      "lat": 37.5058149679709,
+      "lon": 127.056130956028
+    },
+    {
+      "order": 18,
+      "name": "위워크빌딩(구 일송빌딩)",
+      "address": "서울 강남구 테헤란로 507",
+      "nearestStation": "역삼역",
+      "distance": 2.042574182818809,
+      "lat": 37.5076652238165,
+      "lon": 127.057726163073
+    },
+    {
+      "order": 19,
+      "name": "동성빌딩",
+      "address": "서울 강남구 테헤란로87길 21",
+      "nearestStation": "역삼역",
+      "distance": 2.147474117649832,
+      "lat": 37.5090527842434,
+      "lon": 127.058249994864
+    },
+    {
+      "order": 20,
+      "name": "삼흥2빌딩",
+      "address": "서울 강남구 테헤란로 514",
+      "nearestStation": "역삼역",
+      "distance": 2.200106824013269,
+      "lat": 37.5074267999126,
+      "lon": 127.059755460388
+    },
+    {
+      "order": 21,
+      "name": "케이티앤지 대치타워",
+      "address": "서울 강남구 테헤란로98길 8",
+      "nearestStation": "역삼역",
+      "distance": 2.397238678405628,
+      "lat": 37.507683415026,
+      "lon": 127.062010676556
+    },
+    {
+      "order": 22,
+      "name": "미래에셋타워A동",
+      "address": "서울 강남구 테헤란로 620",
+      "nearestStation": "역삼역",
+      "distance": 2.75014218591236,
+      "lat": 37.5091979690111,
+      "lon": 127.065578760717
+    }
+  ],
+  "이슬비": [
+    {
+      "order": 1,
+      "name": "미림타워",
+      "address": "서울 강남구 테헤란로4길 14",
+      "nearestStation": "강남역",
+      "distance": 0.1903617038542731,
+      "lat": 37.4972959395718,
+      "lon": 127.029619025968
+    },
+    {
+      "order": 2,
+      "name": "KB손해보험빌딩",
+      "address": "서울 강남구 테헤란로 117",
+      "nearestStation": "강남역",
+      "distance": 0.2736059239479354,
+      "lat": 37.4991597780331,
+      "lon": 127.030264139554
+    },
+    {
+      "order": 3,
+      "name": "여삼빌딩",
+      "address": "서울 강남구 테헤란로 123",
+      "nearestStation": "강남역",
+      "distance": 0.381860391244508,
+      "lat": 37.4995539438207,
+      "lon": 127.031393491745
+    },
+    {
+      "order": 4,
+      "name": "현익빌딩",
+      "address": "서울 강남구 테헤란로 146",
+      "nearestStation": "역삼역",
+      "distance": 0.1042661646745658,
+      "lat": 37.5000192358695,
+      "lon": 127.035487192435
+    },
+    {
+      "order": 5,
+      "name": "코레이트타워(구 현대해상강남)",
+      "address": "서울 강남구 테헤란로 137",
+      "nearestStation": "역삼역",
+      "distance": 0.2057166487058036,
+      "lat": 37.5003740376418,
+      "lon": 127.034004521906
+    },
+    {
+      "order": 6,
+      "name": "한독약품빌딩",
+      "address": "서울 강남구 테헤란로 132",
+      "nearestStation": "역삼역",
+      "distance": 0.3131877383108335,
+      "lat": 37.4993192768461,
+      "lon": 127.033205638158
+    },
+    {
+      "order": 7,
+      "name": "성곡빌딩",
+      "address": "서울 강남구 테헤란로 128",
+      "nearestStation": "역삼역",
+      "distance": 0.3708827008014604,
+      "lat": 37.4991297862601,
+      "lon": 127.032590806228
+    },
+    {
+      "order": 8,
+      "name": "영남빌딩",
+      "address": "서울 강남구 테헤란로37길 15",
+      "nearestStation": "역삼역",
+      "distance": 0.4521629451003276,
+      "lat": 37.5031531623026,
+      "lon": 127.040387923823
+    },
+    {
+      "order": 9,
+      "name": "위워크타워",
+      "address": "서울 강남구 테헤란로 302",
+      "nearestStation": "역삼역",
+      "distance": 0.6615077775334353,
+      "lat": 37.5024293698973,
+      "lon": 127.043474980423
+    },
+    {
+      "order": 10,
+      "name": "아남타워",
+      "address": "서울 강남구 테헤란로 311",
+      "nearestStation": "역삼역",
+      "distance": 0.8270673572213089,
+      "lat": 37.5037441420961,
+      "lon": 127.044854487099
+    },
+    {
+      "order": 11,
+      "name": "빅토리아빌딩",
+      "address": "서울 강남구 테헤란로 327",
+      "nearestStation": "역삼역",
+      "distance": 1.048766687519406,
+      "lat": 37.504424108842,
+      "lon": 127.047222903908
+    },
+    {
+      "order": 12,
+      "name": "선릉빌딩",
+      "address": "서울 강남구 테헤란로 339",
+      "nearestStation": "역삼역",
+      "distance": 1.177161638556622,
+      "lat": 37.5048110738687,
+      "lon": 127.048597161488
+    },
+    {
+      "order": 13,
+      "name": "성담빌딩",
+      "address": "서울 강남구 테헤란로 411",
+      "nearestStation": "역삼역",
+      "distance": 1.390856272728011,
+      "lat": 37.5054936224827,
+      "lon": 127.050863180985
+    },
+    {
+      "order": 14,
+      "name": "강남파이낸스프라자",
+      "address": "서울시 강남구 테헤란로 419",
+      "nearestStation": "역삼역",
+      "distance": 1.514229237113106,
+      "lat": 37.5058701186479,
+      "lon": 127.052180354928
+    },
+    {
+      "order": 15,
+      "name": "위워크타워",
+      "address": "서울 강남구 테헤란로 427",
+      "nearestStation": "역삼역",
+      "distance": 1.654598935597464,
+      "lat": 37.5063702427027,
+      "lon": 127.053641718718
+    },
+    {
+      "order": 16,
+      "name": "삼영빌딩",
+      "address": "서울 강남구 테헤란로 437",
+      "nearestStation": "역삼역",
+      "distance": 1.782081405849521,
+      "lat": 37.5067448820016,
+      "lon": 127.055010041747
+    },
+    {
+      "order": 17,
+      "name": "본솔빌딩",
+      "address": "서울 강남구 테헤란로 445",
+      "nearestStation": "역삼역",
+      "distance": 1.861468923126426,
+      "lat": 37.5070402971786,
+      "lon": 127.055830122066
+    },
+    {
+      "order": 18,
+      "name": "KR빌딩",
+      "address": "서울 강남구 테헤란로84길 12",
+      "nearestStation": "역삼역",
+      "distance": 2.044365631894489,
+      "lat": 37.5063720678254,
+      "lon": 127.058344951037
+    },
+    {
+      "order": 19,
+      "name": "신안빌딩",
+      "address": "서울 강남구 테헤란로 512",
+      "nearestStation": "역삼역",
+      "distance": 2.151182147288021,
+      "lat": 37.5072456831616,
+      "lon": 127.059248173221
+    },
+    {
+      "order": 20,
+      "name": "호쿠쇼타워",
+      "address": "서울 강남구 테헤란로88길 15",
+      "nearestStation": "역삼역",
+      "distance": 2.206276869644248,
+      "lat": 37.5067281515046,
+      "lon": 127.06012869819
+    },
+    {
+      "order": 21,
+      "name": "슈페리어타워",
+      "address": "서울 강남구 테헤란로 528",
+      "nearestStation": "역삼역",
+      "distance": 2.411574793397849,
+      "lat": 37.5080952698916,
+      "lon": 127.062000046367
+    },
+    {
+      "order": 22,
+      "name": "동일타워",
+      "address": "서울 강남구 테헤란로114길 38",
+      "nearestStation": "역삼역",
+      "distance": 2.800148040178017,
+      "lat": 37.5071243239638,
+      "lon": 127.066992963064
+    }
+  ],
+  "오시영": [
+    {
+      "order": 1,
+      "name": "타워300",
+      "address": "서울 강남구 테헤란로2길 21",
+      "nearestStation": "강남역",
+      "distance": 0.1993051347313225,
+      "lat": 37.4968281890058,
+      "lon": 127.029410765135
+    },
+    {
+      "order": 2,
+      "name": "상경빌딩",
+      "address": "서울 강남구 테헤란로 120",
+      "nearestStation": "강남역",
+      "distance": 0.2973502590310194,
+      "lat": 37.4985885669089,
+      "lon": 127.030856939816
+    },
+    {
+      "order": 3,
+      "name": "화인강남빌딩",
+      "address": "서울 강남구 테헤란로8길 21",
+      "nearestStation": "강남역",
+      "distance": 0.3897665191223258,
+      "lat": 37.4975931910405,
+      "lon": 127.032001186611
+    },
+    {
+      "order": 4,
+      "name": "창성재단빌딩",
+      "address": "서울 강남구 테헤란로25길 7",
+      "nearestStation": "역삼역",
+      "distance": 0.1128880623583494,
+      "lat": 37.5009488414146,
+      "lon": 127.035059356588
+    },
+    {
+      "order": 5,
+      "name": "동궁빌딩",
+      "address": "서울 강남구 테헤란로20길 9",
+      "nearestStation": "역삼역",
+      "distance": 0.2289023449071914,
+      "lat": 37.4991864459589,
+      "lon": 127.034541266305
+    },
+    {
+      "order": 6,
+      "name": "태광타워",
+      "address": "서울시 강남구 테헤란로34길 6",
+      "nearestStation": "역삼역",
+      "distance": 0.3189019388481689,
+      "lat": 37.5010631797394,
+      "lon": 127.039885917072
+    },
+    {
+      "order": 7,
+      "name": "에이피타워(AP타워)",
+      "address": "서울 강남구 테헤란로 218",
+      "nearestStation": "역삼역",
+      "distance": 0.3744006620731442,
+      "lat": 37.5014665543878,
+      "lon": 127.040432704437
+    },
+    {
+      "order": 8,
+      "name": "D&Y빌딩",
+      "address": "서울 강남구 테헤란로38길 12",
+      "nearestStation": "역삼역",
+      "distance": 0.4614247138566692,
+      "lat": 37.501081812192,
+      "lon": 127.041508447083
+    },
+    {
+      "order": 9,
+      "name": "카이트타워",
+      "address": "서울 강남구 테헤란로 306",
+      "nearestStation": "역삼역",
+      "distance": 0.7197917439046269,
+      "lat": 37.5025952829367,
+      "lon": 127.044101954044
+    },
+    {
+      "order": 10,
+      "name": "금성빌딩",
+      "address": "서울 강남구 테헤란로 314",
+      "nearestStation": "역삼역",
+      "distance": 0.8283916191088019,
+      "lat": 37.5029822853407,
+      "lon": 127.04523911677
+    },
+    {
+      "order": 11,
+      "name": "동우빌딩",
+      "address": "서울 강남구 테헤란로 328",
+      "nearestStation": "역삼역",
+      "distance": 1.05801524843265,
+      "lat": 37.5037075363048,
+      "lon": 127.047678791723
+    },
+    {
+      "order": 12,
+      "name": "남경센터빌딩",
+      "address": "서울 강남구 테헤란로 401",
+      "nearestStation": "역삼역",
+      "distance": 1.228646730371447,
+      "lat": 37.5049703247826,
+      "lon": 127.049145898783
+    },
+    {
+      "order": 13,
+      "name": "알레르망타워(구.T412)",
+      "address": "서울 강남구 테헤란로 412",
+      "nearestStation": "역삼역",
+      "distance": 1.394728202003448,
+      "lat": 37.504748137357,
+      "lon": 127.051264734252
+    },
+    {
+      "order": 14,
+      "name": "KT선릉타워west(구.메이플타워)",
+      "address": "서울 강남구 테헤란로 420",
+      "nearestStation": "역삼역",
+      "distance": 1.516977010580898,
+      "lat": 37.5051452726841,
+      "lon": 127.052558161135
+    },
+    {
+      "order": 15,
+      "name": "원방빌딩",
+      "address": "서울 강남구 테헤란로 429",
+      "nearestStation": "역삼역",
+      "distance": 1.681767732043867,
+      "lat": 37.5064418279545,
+      "lon": 127.053937637774
+    },
+    {
+      "order": 16,
+      "name": "ES타워",
+      "address": "서울 강남구 테헤란로77길 14",
+      "nearestStation": "역삼역",
+      "distance": 1.790948346831452,
+      "lat": 37.5075000660049,
+      "lon": 127.054704544806
+    },
+    {
+      "order": 17,
+      "name": "KB우준타워",
+      "address": "서울 강남구 테헤란로 447",
+      "nearestStation": "역삼역",
+      "distance": 1.883855837399061,
+      "lat": 37.507123620717,
+      "lon": 127.056061361241
+    },
+    {
+      "order": 18,
+      "name": "시몬빌딩",
+      "address": "서울 강남구 테헤란로84길 15",
+      "nearestStation": "역삼역",
+      "distance": 2.084397020790396,
+      "lat": 37.5062173688299,
+      "lon": 127.058882503212
+    },
+    {
+      "order": 19,
+      "name": "케이타워(K-Tower)",
+      "address": "서울 강남구 테헤란로 513",
+      "nearestStation": "역삼역",
+      "distance": 2.15159006853118,
+      "lat": 37.5080031582356,
+      "lon": 127.058887185824
+    },
+    {
+      "order": 20,
+      "name": "세안빌딩",
+      "address": "서울 강남구 테헤란로88길 17",
+      "nearestStation": "역삼역",
+      "distance": 2.213564074602095,
+      "lat": 37.5065448061156,
+      "lon": 127.060287569001
+    },
+    {
+      "order": 21,
+      "name": "EG빌딩",
+      "address": "서울 강남구 테헤란로98길 11",
+      "nearestStation": "역삼역",
+      "distance": 2.45658266292581,
+      "lat": 37.5076481634053,
+      "lon": 127.062735512606
+    },
+    {
+      "order": 22,
+      "name": "덕명빌딩",
+      "address": "서울 강남구 테헤란로 625",
+      "nearestStation": "역삼역",
+      "distance": 2.826750213414868,
+      "lat": 37.5101503390692,
+      "lon": 127.066048979299
+    }
+  ],
+  "조은아": [
+    {
+      "order": 1,
+      "name": "해암빌딩(협진해운 사옥)",
+      "address": "서울 강남구 테헤란로4길 5",
+      "nearestStation": "강남역",
+      "distance": 0.2125653614492774,
+      "lat": 37.4979246534828,
+      "lon": 127.030009309581
+    },
+    {
+      "order": 2,
+      "name": "센터포인트 강남",
+      "address": "서울 강남구 테헤란로8길 8",
+      "nearestStation": "강남역",
+      "distance": 0.3056043045199285,
+      "lat": 37.4982005447361,
+      "lon": 127.031043373544
+    },
+    {
+      "order": 3,
+      "name": "한국과학기술회관",
+      "address": "서울 강남구 테헤란로7길 22",
+      "nearestStation": "강남역",
+      "distance": 0.4202581682023583,
+      "lat": 37.500722082344,
+      "lon": 127.030768815378
+    },
+    {
+      "order": 4,
+      "name": "고운빌딩",
+      "address": "서울 강남구 테헤란로 143",
+      "nearestStation": "역삼역",
+      "distance": 0.1240204113617399,
+      "lat": 37.500619211163,
+      "lon": 127.034897822252
+    },
+    {
+      "order": 5,
+      "name": "아가방빌딩",
+      "address": "서울 강남구 테헤란로 207",
+      "nearestStation": "역삼역",
+      "distance": 0.2408834038680228,
+      "lat": 37.5017119332975,
+      "lon": 127.038714400832
+    },
+    {
+      "order": 6,
+      "name": "삼흥역삼빌딩",
+      "address": "서울 강남구 테헤란로14길 5",
+      "nearestStation": "역삼역",
+      "distance": 0.3256071953948553,
+      "lat": 37.499089066355,
+      "lon": 127.033217749748
+    },
+    {
+      "order": 7,
+      "name": "하나금융그룹 강남사옥",
+      "address": "서울 강남구 테헤란로 127",
+      "nearestStation": "역삼역",
+      "distance": 0.3914877581323259,
+      "lat": 37.4996994615351,
+      "lon": 127.032045172427
+    },
+    {
+      "order": 8,
+      "name": "센터필드 이스트",
+      "address": "서울 강남구 테헤란로 231",
+      "nearestStation": "역삼역",
+      "distance": 0.5077440175109866,
+      "lat": 37.5028813541774,
+      "lon": 127.041356540268
+    },
+    {
+      "order": 9,
+      "name": "한국기술센터",
+      "address": "서울 강남구 테헤란로 305",
+      "nearestStation": "역삼역",
+      "distance": 0.7222859760929237,
+      "lat": 37.5033406241505,
+      "lon": 127.043780751267
+    },
+    {
+      "order": 10,
+      "name": "메트라이프타워",
+      "address": "서울 강남구 테헤란로 316",
+      "nearestStation": "역삼역",
+      "distance": 0.8567256224159526,
+      "lat": 37.5030781277393,
+      "lon": 127.045537630336
+    },
+    {
+      "order": 11,
+      "name": "삼흥1빌딩",
+      "address": "서울 강남구 테헤란로 329",
+      "nearestStation": "역삼역",
+      "distance": 1.091667249257188,
+      "lat": 37.5045321304958,
+      "lon": 127.047693566262
+    },
+    {
+      "order": 12,
+      "name": "리치타워",
+      "address": "서울 강남구 테헤란로 403",
+      "nearestStation": "역삼역",
+      "distance": 1.263276688413577,
+      "lat": 37.5050855011158,
+      "lon": 127.049510713015
+    },
+    {
+      "order": 13,
+      "name": "제이제이빌딩",
+      "address": "서울 강남구 테헤란로63길 20",
+      "nearestStation": "역삼역",
+      "distance": 1.40201237771189,
+      "lat": 37.5065217786409,
+      "lon": 127.050397908819
+    },
+    {
+      "order": 14,
+      "name": "KT선릉타워 EAST",
+      "address": "서울 강남구 테헤란로 422",
+      "nearestStation": "역삼역",
+      "distance": 1.548739121565363,
+      "lat": 37.5053202922409,
+      "lon": 127.052862629563
+    },
+    {
+      "order": 15,
+      "name": "저스트코타워 (FL Tower)",
+      "address": "서울 강남구 테헤란로 431",
+      "nearestStation": "역삼역",
+      "distance": 1.71619191452005,
+      "lat": 37.5065474377073,
+      "lon": 127.054304834683
+    },
+    {
+      "order": 16,
+      "name": "연당빌딩",
+      "address": "서울 강남구 테헤란로 439",
+      "nearestStation": "역삼역",
+      "distance": 1.800096443964679,
+      "lat": 37.5068290432719,
+      "lon": 127.05518733106
+    },
+    {
+      "order": 17,
+      "name": "V-PLEX(브이플렉스)",
+      "address": "서울 강남구 테헤란로 501",
+      "nearestStation": "역삼역",
+      "distance": 1.956728635604193,
+      "lat": 37.5073809450356,
+      "lon": 127.056821251348
+    },
+    {
+      "order": 18,
+      "name": "엔씨(NC)타워1",
+      "address": "서울 강남구 테헤란로 509",
+      "nearestStation": "역삼역",
+      "distance": 2.086578287358495,
+      "lat": 37.5077804973225,
+      "lon": 127.05820568843
+    },
+    {
+      "order": 19,
+      "name": "금강타워3",
+      "address": "서울 강남구 테헤란로87길 35",
+      "nearestStation": "역삼역",
+      "distance": 2.151741786552664,
+      "lat": 37.5099628802377,
+      "lon": 127.057717074415
+    },
+    {
+      "order": 20,
+      "name": "한국도심공항터미널",
+      "address": "서울 강남구 테헤란로87길 22",
+      "nearestStation": "역삼역",
+      "distance": 2.2702824876994,
+      "lat": 37.5096322564759,
+      "lon": 127.059443354483
+    },
+    {
+      "order": 21,
+      "name": "글라스타워",
+      "address": "서울 강남구 테헤란로 534",
+      "nearestStation": "역삼역",
+      "distance": 2.475568486470414,
+      "lat": 37.5080381764122,
+      "lon": 127.06279566981
+    }
+  ],
+  "이오람": [
+    {
+      "order": 1,
+      "name": "KG타워",
+      "address": "서울 강남구 테헤란로5길 7",
+      "nearestStation": "강남역",
+      "distance": 0.2125664932875456,
+      "lat": 37.4992701289378,
+      "lon": 127.029280313995
+    },
+    {
+      "order": 2,
+      "name": "에스코빌딩",
+      "address": "서울 강남구 테헤란로7길 7",
+      "nearestStation": "강남역",
+      "distance": 0.318263000628173,
+      "lat": 37.4996310406531,
+      "lon": 127.030473092157
+    },
+    {
+      "order": 3,
+      "name": "퍼스트역삼빌딩",
+      "address": "서울 강남구 테헤란로8길 42",
+      "nearestStation": "강남역",
+      "distance": 0.4476794866630505,
+      "lat": 37.4961482913142,
+      "lon": 127.032169064933
+    },
+    {
+      "order": 4,
+      "name": "역삼케이알빌딩",
+      "address": "서울 강남구 테헤란로 141",
+      "nearestStation": "역삼역",
+      "distance": 0.1456891288605477,
+      "lat": 37.5005328741212,
+      "lon": 127.034661988546
+    },
+    {
+      "order": 5,
+      "name": "HK스퀘어(구 한국타이어빌딩)",
+      "address": "서울 강남구 테헤란로 133",
+      "nearestStation": "역삼역",
+      "distance": 0.2581930088689023,
+      "lat": 37.5001506545833,
+      "lon": 127.033456274134
+    },
+    {
+      "order": 6,
+      "name": "신웅타워",
+      "address": "서울 강남구 테헤란로 216",
+      "nearestStation": "역삼역",
+      "distance": 0.3491978330639382,
+      "lat": 37.5014432260166,
+      "lon": 127.040146004168
+    },
+    {
+      "order": 7,
+      "name": "대공빌딩",
+      "address": "서울 강남구 테헤란로 126",
+      "nearestStation": "역삼역",
+      "distance": 0.3959254201312428,
+      "lat": 37.4990121815329,
+      "lon": 127.032348181084
+    },
+    {
+      "order": 8,
+      "name": "삼익라비돌빌딩",
+      "address": "서울 강남구 테헤란로 234",
+      "nearestStation": "역삼역",
+      "distance": 0.5122118961245262,
+      "lat": 37.5019526807087,
+      "lon": 127.041887563067
+    },
+    {
+      "order": 9,
+      "name": "아이콘역삼빌딩",
+      "address": "서울 강남구 테헤란로44길 8",
+      "nearestStation": "역삼역",
+      "distance": 0.7409123094819762,
+      "lat": 37.5023270151927,
+      "lon": 127.044444694599
+    },
+    {
+      "order": 10,
+      "name": "동훈타워",
+      "address": "서울 강남구 테헤란로 317",
+      "nearestStation": "역삼역",
+      "distance": 0.910727340572791,
+      "lat": 37.5039741806376,
+      "lon": 127.045763234822
+    },
+    {
+      "order": 11,
+      "name": "HJ타워",
+      "address": "서울 강남구 테헤란로 332",
+      "nearestStation": "역삼역",
+      "distance": 1.103353079788462,
+      "lat": 37.503774633134,
+      "lon": 127.048192060882
+    },
+    {
+      "order": 12,
+      "name": "보광빌딩(본관)",
+      "address": "서울 강남구 테헤란로 405",
+      "nearestStation": "역삼역",
+      "distance": 1.310831932101712,
+      "lat": 37.5054510555221,
+      "lon": 127.049899558577
+    },
+    {
+      "order": 13,
+      "name": "태양빌딩",
+      "address": "서울 강남구 테헤란로 413",
+      "nearestStation": "역삼역",
+      "distance": 1.428728753624603,
+      "lat": 37.5055812893917,
+      "lon": 127.05128204246
+    },
+    {
+      "order": 14,
+      "name": "H타워",
+      "address": "서울 강남구 테헤란로70길 12",
+      "nearestStation": "역삼역",
+      "distance": 1.553700358995876,
+      "lat": 37.5047428849251,
+      "lon": 127.053159553826
+    },
+    {
+      "order": 15,
+      "name": "동성빌딩",
+      "address": "서울 강남구 테헤란로78길 14-6",
+      "nearestStation": "역삼역",
+      "distance": 1.724740533147286,
+      "lat": 37.5053230276162,
+      "lon": 127.054963307006
+    },
+    {
+      "order": 16,
+      "name": "송암3빌딩",
+      "address": "서울 강남구 테헤란로 441",
+      "nearestStation": "역삼역",
+      "distance": 1.819307019482763,
+      "lat": 37.5069068888653,
+      "lon": 127.055382485911
+    },
+    {
+      "order": 17,
+      "name": "동원타워",
+      "address": "서울 강남구 테헤란로81길 13",
+      "nearestStation": "역삼역",
+      "distance": 1.984270243409223,
+      "lat": 37.5079699213978,
+      "lon": 127.056843073983
+    },
+    {
+      "order": 18,
+      "name": "루첸타워",
+      "address": "서울 강남구 테헤란로 510",
+      "nearestStation": "역삼역",
+      "distance": 2.092869106355063,
+      "lat": 37.507001535999,
+      "lon": 127.058656127092
+    },
+    {
+      "order": 19,
+      "name": "엠타워",
+      "address": "서울 강남구 테헤란로87길 29",
+      "nearestStation": "역삼역",
+      "distance": 2.15361800791832,
+      "lat": 37.5095900006982,
+      "lon": 127.057990612268
+    },
+    {
+      "order": 20,
+      "name": "섬유센터",
+      "address": "서울 강남구 테헤란로 518",
+      "nearestStation": "역삼역",
+      "distance": 2.274681284281736,
+      "lat": 37.5075910839105,
+      "lon": 127.060579419429
+    },
+    {
+      "order": 21,
+      "name": "캐논케이타워",
+      "address": "서울 강남구 테헤란로 607",
+      "nearestStation": "역삼역",
+      "distance": 2.632670284023309,
+      "lat": 37.5095109420719,
+      "lon": 127.064001573733
+    }
+  ],
+  "심정원": [
+    {
+      "order": 1,
+      "name": "역삼빌딩",
+      "address": "서울 강남구 테헤란로 114",
+      "nearestStation": "강남역",
+      "distance": 0.225015221726007,
+      "lat": 37.4982884559713,
+      "lon": 127.030103204318
+    },
+    {
+      "order": 2,
+      "name": "한덕빌딩",
+      "address": "서울 강남구 테헤란로7길 11",
+      "nearestStation": "강남역",
+      "distance": 0.3308979309931601,
+      "lat": 37.4998890201223,
+      "lon": 127.03038996316
+    },
+    {
+      "order": 3,
+      "name": "역삼하이츠빌딩",
+      "address": "서울 강남구 테헤란로 151",
+      "nearestStation": "역삼역",
+      "distance": 0.03439089014055143,
+      "lat": 37.5009805027604,
+      "lon": 127.036135772428
+    },
+    {
+      "order": 4,
+      "name": "ARC PLACE(아크플레이스)",
+      "address": "서울 강남구 테헤란로 142",
+      "nearestStation": "역삼역",
+      "distance": 0.1593186196767457,
+      "lat": 37.4997440471512,
+      "lon": 127.034954751198
+    },
+    {
+      "order": 5,
+      "name": "쓰리엠타워",
+      "address": "서울 강남구 테헤란로20길 10",
+      "nearestStation": "역삼역",
+      "distance": 0.2616225817096187,
+      "lat": 37.4990862800943,
+      "lon": 127.034141792509
+    },
+    {
+      "order": 6,
+      "name": "오렌지플래닛",
+      "address": "서울 강남구 테헤란로 217",
+      "nearestStation": "역삼역",
+      "distance": 0.3497629807572896,
+      "lat": 37.5021097120161,
+      "lon": 127.03984440325
+    },
+    {
+      "order": 7,
+      "name": "도원빌딩",
+      "address": "서울 강남구 테헤란로 222",
+      "nearestStation": "역삼역",
+      "distance": 0.4080990002325782,
+      "lat": 37.5016580838661,
+      "lon": 127.040765750902
+    },
+    {
+      "order": 8,
+      "name": "마크로젠빌딩(구 대봉빌딩)",
+      "address": "서울 강남구 테헤란로 238",
+      "nearestStation": "역삼역",
+      "distance": 0.5422442866607305,
+      "lat": 37.5020507768815,
+      "lon": 127.042206313115
+    },
+    {
+      "order": 9,
+      "name": "역삼동 707-12",
+      "address": "서울 강남구 테헤란로44길 7",
+      "nearestStation": "역삼역",
+      "distance": 0.7814308299384338,
+      "lat": 37.5023991955137,
+      "lon": 127.04489541391
+    },
+    {
+      "order": 10,
+      "name": "한신인터밸리24",
+      "address": "서울 강남구 테헤란로 322",
+      "nearestStation": "역삼역",
+      "distance": 0.9498639525526978,
+      "lat": 37.5032355765545,
+      "lon": 127.046582379785
+    },
+    {
+      "order": 11,
+      "name": "파라다이스 벤쳐타워",
+      "address": "서울 강남구 테헤란로52길 21",
+      "nearestStation": "역삼역",
+      "distance": 1.108837513186611,
+      "lat": 37.5029289822701,
+      "lon": 127.048551721816
+    },
+    {
+      "order": 12,
+      "name": "대치나라빌딩",
+      "address": "서울 강남구 테헤란로 408",
+      "nearestStation": "역삼역",
+      "distance": 1.311409938140925,
+      "lat": 37.5044682122431,
+      "lon": 127.050387028274
+    },
+    {
+      "order": 13,
+      "name": "L&B타워(엘엔비타워)",
+      "address": "서울 강남구 테헤란로 414",
+      "nearestStation": "역삼역",
+      "distance": 1.430925873003503,
+      "lat": 37.5049127733133,
+      "lon": 127.051627322774
+    },
+    {
+      "order": 14,
+      "name": "동산빌딩",
+      "address": "서울 강남구 테헤란로70길 16",
+      "nearestStation": "역삼역",
+      "distance": 1.554795783012359,
+      "lat": 37.5044018828545,
+      "lon": 127.053296384694
+    },
+    {
+      "order": 15,
+      "name": "동부금융센터",
+      "address": "서울 강남구 테헤란로 432",
+      "nearestStation": "역삼역",
+      "distance": 1.731508560903825,
+      "lat": 37.5058806405734,
+      "lon": 127.05481058047
+    },
+    {
+      "order": 16,
+      "name": "송현빌딩",
+      "address": "서울 강남구 테헤란로79길 13",
+      "nearestStation": "역삼역",
+      "distance": 1.821752092147206,
+      "lat": 37.5076906819644,
+      "lon": 127.054977597121
+    },
+    {
+      "order": 17,
+      "name": "하이브로빌딩(구 옥산)",
+      "address": "서울 강남구 테헤란로 503",
+      "nearestStation": "역삼역",
+      "distance": 1.989072595194544,
+      "lat": 37.507482322357,
+      "lon": 127.057165154904
+    },
+    {
+      "order": 18,
+      "name": "매직킹덤빌딩",
+      "address": "서울 강남구 테헤란로83길 18",
+      "nearestStation": "역삼역",
+      "distance": 2.093171726472173,
+      "lat": 37.508666384474,
+      "lon": 127.057799432843
+    },
+    {
+      "order": 19,
+      "name": "서영빌딩",
+      "address": "서울 강남구 테헤란로87길 13",
+      "nearestStation": "역삼역",
+      "distance": 2.155198712178352,
+      "lat": 37.5086333777282,
+      "lon": 127.058591804414
+    },
+    {
+      "order": 20,
+      "name": "삼안빌딩",
+      "address": "서울 강남구 테헤란로 520",
+      "nearestStation": "역삼역",
+      "distance": 2.323398761991597,
+      "lat": 37.5078269000485,
+      "lon": 127.061059386179
+    },
+    {
+      "order": 21,
+      "name": "한진빌딩",
+      "address": "서울 강남구 테헤란로103길 6",
+      "nearestStation": "역삼역",
+      "distance": 2.695029071822402,
+      "lat": 37.5099313229948,
+      "lon": 127.064549358849
+    }
+  ]
+};
+
+        let map;
+        let markers = {};
+        let polylines = {};
+        let currentInvestigator = null;
+        let showAll = false;
+        let geocoder;
+        let infowindows = [];
+
+        function initMap() {
+            const container = document.getElementById('map');
+            const options = {
+                center: new kakao.maps.LatLng(37.5000, 127.0320),
+                level: 5
+            };
+            
+            map = new kakao.maps.Map(container, options);
+            geocoder = new kakao.maps.services.Geocoder();
+            
+            // 지도 타입 컨트롤 추가
+            const mapTypeControl = new kakao.maps.MapTypeControl();
+            map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
+            
+            // 줌 컨트롤 추가
+            const zoomControl = new kakao.maps.ZoomControl();
+            map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
+            
+            addStationMarkers();
+            
+            Object.keys(investigatorColors).forEach(investigator => {
+                markers[investigator] = [];
+                polylines[investigator] = null;
+            });
+            
+            loadAllBuildings();
+        }
+
+        function addStationMarkers() {
+            // 강남역
+            const gangnamMarker = new kakao.maps.Marker({
+                position: new kakao.maps.LatLng(37.4979, 127.0276),
+                map: map
+            });
+            
+            const gangnamOverlay = new kakao.maps.CustomOverlay({
+                content: '<div class="custom-overlay station-marker" style="background: #ff6b6b;">🚇 강남역</div>',
+                position: new kakao.maps.LatLng(37.4979, 127.0276),
+                map: map,
+                yAnchor: 2.5
+            });
+            
+            // 역삼역
+            const yeoksamMarker = new kakao.maps.Marker({
+                position: new kakao.maps.LatLng(37.5007, 127.0363),
+                map: map
+            });
+            
+            const yeoksamOverlay = new kakao.maps.CustomOverlay({
+                content: '<div class="custom-overlay station-marker" style="background: #4ecdc4;">🚇 역삼역</div>',
+                position: new kakao.maps.LatLng(37.5007, 127.0363),
+                map: map,
+                yAnchor: 2.5
+            });
+        }
+
+        function createMarkerForBuilding(building, investigator) {
+            if (!building.lat || !building.lon) return null;
+            
+            const markerPosition = new kakao.maps.LatLng(building.lat, building.lon);
+            
+            const marker = new kakao.maps.Marker({
+                position: markerPosition,
+                map: null
+            });
+            
+            const overlay = new kakao.maps.CustomOverlay({
+                content: `<div class="custom-overlay" style="background: ${investigatorColors[investigator]}; color: white;">${building.order}</div>`,
+                position: markerPosition,
+                map: null,
+                yAnchor: 2.5
+            });
+            
+            const infowindow = new kakao.maps.InfoWindow({
+                content: `
+                    <div class="building-info">
+                        <h3>${building.name}</h3>
+                        <p><span class="order">순번 ${building.order}</span></p>
+                        <p><strong>담당자:</strong> ${investigator}</p>
+                        <p><strong>주소:</strong> ${building.address}</p>
+                        <p><strong>가까운 역:</strong> ${building.nearestStation || '확인중'}</p>
+                        ${building.distance ? `<p><strong>역까지 거리:</strong> ${building.distance.toFixed(2)}km</p>` : ''}
+                    </div>
+                `,
+                removable: true
+            });
+            
+            kakao.maps.event.addListener(marker, 'click', function() {
+                // 모든 인포윈도우 닫기
+                infowindows.forEach(iw => iw.close());
+                infowindow.open(map, marker);
+            });
+            
+            infowindows.push(infowindow);
+            
+            return { marker, overlay, infowindow };
+        }
+
+        function loadAllBuildings() {
+            let totalLoaded = 0;
+            let needsGeocoding = [];
+            
+            Object.keys(buildingData).forEach(investigator => {
+                const buildings = buildingData[investigator];
+                
+                buildings.forEach(building => {
+                    if (building.lat && building.lon) {
+                        const markerObj = createMarkerForBuilding(building, investigator);
+                        if (markerObj) {
+                            markers[investigator].push(markerObj);
+                            totalLoaded++;
+                        }
+                    } else if (building.address) {
+                        needsGeocoding.push({ building, investigator });
+                    }
+                });
+            });
+            
+            console.log(`총 ${totalLoaded}개의 빌딩 마커 생성 완료`);
+            
+            if (needsGeocoding.length > 0) {
+                console.log(`${needsGeocoding.length}개 빌딩의 좌표를 검색중...`);
+                geocodeBuildings(needsGeocoding);
+            } else {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function geocodeBuildings(buildings) {
+            let processed = 0;
+            
+            buildings.forEach(({ building, investigator }, index) => {
+                setTimeout(() => {
+                    geocoder.addressSearch(building.address, function(result, status) {
+                        if (status === kakao.maps.services.Status.OK) {
+                            building.lat = parseFloat(result[0].y);
+                            building.lon = parseFloat(result[0].x);
+                            
+                            const markerObj = createMarkerForBuilding(building, investigator);
+                            if (markerObj) {
+                                markers[investigator].push(markerObj);
+                            }
+                        }
+                        
+                        processed++;
+                        if (processed === buildings.length) {
+                            console.log('모든 주소 검색 완료');
+                            document.getElementById('loading').style.display = 'none';
+                        }
+                    });
+                }, index * 100); // API 제한 방지를 위한 딜레이
+            });
+        }
+
+        function selectInvestigator(investigator) {
+            // 모든 인포윈도우 닫기
+            infowindows.forEach(iw => iw.close());
+            
+            document.querySelectorAll('.investigator-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            event.target.classList.add('active');
+            document.querySelector('.show-all-btn').classList.remove('active');
+            showAll = false;
+            
+            hideAllMarkers();
+            
+            currentInvestigator = investigator;
+            showInvestigatorMarkers(investigator);
+            showStats(investigator);
+        }
+
+        function toggleAll() {
+            const btn = document.querySelector('.show-all-btn');
+            showAll = !showAll;
+            
+            // 모든 인포윈도우 닫기
+            infowindows.forEach(iw => iw.close());
+            
+            if (showAll) {
+                btn.classList.add('active');
+                btn.textContent = '전체 숨기기';
+                
+                document.querySelectorAll('.investigator-btn:not(.show-all-btn)').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                Object.keys(investigatorColors).forEach(investigator => {
+                    showInvestigatorMarkers(investigator);
+                });
+                
+                document.getElementById('stats').style.display = 'none';
+                
+                // 전체 빌딩이 보이도록 지도 범위 조정
+                fitMapToBounds();
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = '전체 보기';
+                hideAllMarkers();
+            }
+        }
+
+        function fitMapToBounds() {
+            const bounds = new kakao.maps.LatLngBounds();
+            
+            Object.values(markers).forEach(investigatorMarkers => {
+                investigatorMarkers.forEach(({ marker }) => {
+                    bounds.extend(marker.getPosition());
+                });
+            });
+            
+            map.setBounds(bounds);
+        }
+
+        function hideAllMarkers() {
+            Object.values(markers).forEach(investigatorMarkers => {
+                investigatorMarkers.forEach(({ marker, overlay }) => {
+                    marker.setMap(null);
+                    overlay.setMap(null);
+                });
+            });
+            
+            Object.values(polylines).forEach(polyline => {
+                if (polyline) polyline.setMap(null);
+            });
+        }
+
+        function showInvestigatorMarkers(investigator) {
+            if (!markers[investigator] || markers[investigator].length === 0) {
+                console.log(`${investigator}의 빌딩 데이터가 없습니다.`);
+                return;
+            }
+            
+            markers[investigator].forEach(({ marker, overlay }) => {
+                marker.setMap(map);
+                overlay.setMap(map);
+            });
+            
+            if (!showAll) {
+                showRoute(investigator);
+                
+                // 해당 담당자의 빌딩들이 모두 보이도록 지도 조정
+                const bounds = new kakao.maps.LatLngBounds();
+                markers[investigator].forEach(({ marker }) => {
+                    bounds.extend(marker.getPosition());
+                });
+                map.setBounds(bounds);
+            }
+        }
+
+        function showRoute(investigator) {
+            if (!markers[investigator] || markers[investigator].length < 2) return;
+            
+            const path = markers[investigator].map(({ marker }) => marker.getPosition());
+            
+            if (polylines[investigator]) {
+                polylines[investigator].setMap(null);
+            }
+            
+            polylines[investigator] = new kakao.maps.Polyline({
+                path: path,
+                strokeWeight: 3,
+                strokeColor: investigatorColors[investigator],
+                strokeOpacity: 0.7,
+                strokeStyle: 'solid'
+            });
+            
+            polylines[investigator].setMap(map);
+        }
+
+        function showStats(investigator) {
+            const stats = document.getElementById('stats');
+            const content = document.getElementById('stats-content');
+            
+            const buildingCount = buildingData[investigator]?.length || 0;
+            const gangnamCount = buildingData[investigator]?.filter(b => b.nearestStation === '강남역').length || 0;
+            const yeoksamCount = buildingData[investigator]?.filter(b => b.nearestStation === '역삼역').length || 0;
+            const withCoords = markers[investigator]?.length || 0;
+            
+            content.innerHTML = `
+                <p><strong>담당자:</strong> ${investigator}</p>
+                <p><strong>총 빌딩 수:</strong> ${buildingCount}개</p>
+                <p><strong>지도 표시:</strong> ${withCoords}개</p>
+                <p><strong>강남역 주변:</strong> ${gangnamCount}개</p>
+                <p><strong>역삼역 주변:</strong> ${yeoksamCount}개</p>
+                <p><strong>색상:</strong> <span style="display: inline-block; width: 20px; height: 20px; background: ${investigatorColors[investigator]}; border-radius: 50%; vertical-align: middle;"></span></p>
+            `;
+            
+            stats.style.display = 'block';
+        }
+
+        // 지도 이동 시 인포윈도우 닫기
+        kakao.maps.event.addListener(map, 'dragstart', function() {
+            infowindows.forEach(iw => iw.close());
+        });
+
+        window.onload = function() {
+            initMap();
+        };
+    </script>
+</body>
+</html>
