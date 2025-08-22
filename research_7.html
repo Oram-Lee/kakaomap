@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <title>테헤란로 빌딩 지도</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
+        #header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        #header h1 { 
+            margin: 0; 
+            font-size: 24px; 
+            font-weight: 500;
+        }
+        
+        #controls {
+            background: white;
+            padding: 10px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        #map {
+            width: 100%;
+            height: calc(100vh - 120px);
+        }
+        
+        .building-label {
+            background: white;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 2px solid;
+        }
+        
+        .info-window {
+            padding: 15px;
+            max-width: 300px;
+        }
+        
+        .info-window h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        .info-window p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .info-window .investigator {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+        
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        #legend h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        #stats {
+            position: absolute;
+            top: 120px;
+            left: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🏢 테헤란로 빌딩 현장조사 지도</h1>
+    </div>
+    
+    <div id="controls">
+        <button class="filter-btn active" onclick="showAll()">전체 보기</button>
+        <button class="filter-btn" onclick="filterByInvestigator('소나무')">소나무</button>
+        <button class="filter-btn" onclick="filterByInvestigator('안준희')">안준희</button>
+        <button class="filter-btn" onclick="filterByInvestigator('남민준')">남민준</button>
+        <button class="filter-btn" onclick="filterByInvestigator('이슬비')">이슬비</button>
+        <button class="filter-btn" onclick="filterByInvestigator('오시영')">오시영</button>
+        <button class="filter-btn" onclick="filterByInvestigator('조은아')">조은아</button>
+        <button class="filter-btn" onclick="filterByInvestigator('이오람')">이오람</button>
+        <button class="filter-btn" onclick="filterByInvestigator('심정원')">심정원</button>
+    </div>
+    
+    <div id="map"></div>
+    
+    <div id="stats">
+        <strong>총 빌딩:</strong> 0개<br>
+        <strong>표시된 빌딩:</strong> <span id="shown-count">0</span>개
+    </div>
+    
+    <div id="legend">
+        <h4>담당자 색상</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e74c3c;"></div>
+            <span>소나무</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f39c12;"></div>
+            <span>안준희</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #27ae60;"></div>
+            <span>남민준</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #3498db;"></div>
+            <span>이슬비</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #9b59b6;"></div>
+            <span>오시영</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #1abc9c;"></div>
+            <span>조은아</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e67e22;"></div>
+            <span>이오람</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #34495e;"></div>
+            <span>심정원</span>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=1ac6eee9b1e4c2e0cc6f1d1ca1a6a559&libraries=services&autoload=false"></script>
+    <script>
+        const colors = {"소나무": "#e74c3c", "안준희": "#f39c12", "남민준": "#27ae60", "이슬비": "#3498db", "오시영": "#9b59b6", "조은아": "#1abc9c", "이오람": "#e67e22", "심정원": "#34495e"};
+        const buildings = [];
+        
+        let map;
+        let overlays = [];
+        let currentFilter = null;
+        
+        kakao.maps.load(function() {
+            initMap();
+        });
+        
+        function initMap() {
+            const container = document.getElementById('map');
+            const options = {
+                center: new kakao.maps.LatLng(37.5000, 127.0320),
+                level: 5
+            };
+            
+            map = new kakao.maps.Map(container, options);
+            
+            // 컨트롤 추가
+            map.addControl(new kakao.maps.MapTypeControl(), kakao.maps.ControlPosition.TOPRIGHT);
+            map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+            
+            // 모든 빌딩 마커 생성
+            buildings.forEach(building => {
+                createBuildingMarker(building);
+            });
+            
+            // 지도 범위 자동 조정
+            fitMapToBounds();
+        }
+        
+        function createBuildingMarker(building) {
+            const position = new kakao.maps.LatLng(building.lat, building.lon);
+            const color = colors[building.investigator] || '#999999';
+            
+            // 빌딩명 라벨
+            const content = `<div class="building-label" style="border-color: ${color}; color: ${color};">${building.name}</div>`;
+            
+            const customOverlay = new kakao.maps.CustomOverlay({
+                position: position,
+                content: content,
+                yAnchor: 0.5,
+                clickable: true,
+                zIndex: 1
+            });
+            
+            customOverlay.setMap(map);
+            
+            // 클릭 이벤트
+            const overlayContent = customOverlay.getContent();
+            overlayContent.addEventListener('click', function() {
+                showInfoWindow(building, position);
+            });
+            
+            // 오버레이 저장
+            overlays.push({
+                overlay: customOverlay,
+                building: building
+            });
+        }
+        
+        function showInfoWindow(building, position) {
+            const color = colors[building.investigator] || '#999999';
+            
+            const content = `
+                <div class="info-window">
+                    <h3>${building.name}</h3>
+                    <p><strong>주소:</strong><br>${building.address}</p>
+                    <div class="investigator" style="background: ${color};">
+                        담당: ${building.investigator}
+                    </div>
+                </div>
+            `;
+            
+            const infowindow = new kakao.maps.InfoWindow({
+                content: content,
+                removable: true
+            });
+            
+            // 더미 마커 (인포윈도우 표시용)
+            const marker = new kakao.maps.Marker({
+                position: position
+            });
+            
+            infowindow.open(map, marker);
+        }
+        
+        function filterByInvestigator(investigator) {
+            // 버튼 활성화 상태 변경
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            currentFilter = investigator;
+            
+            // 오버레이 필터링
+            let shownCount = 0;
+            overlays.forEach(item => {
+                if (item.building.investigator === investigator) {
+                    item.overlay.setMap(map);
+                    shownCount++;
+                } else {
+                    item.overlay.setMap(null);
+                }
+            });
+            
+            // 카운트 업데이트
+            document.getElementById('shown-count').textContent = shownCount;
+            
+            // 해당 담당자 빌딩만 보이도록 지도 조정
+            fitMapToInvestigator(investigator);
+        }
+        
+        function showAll() {
+            // 버튼 활성화 상태 변경
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('.filter-btn').classList.add('active');
+            
+            currentFilter = null;
+            
+            // 모든 오버레이 표시
+            overlays.forEach(item => {
+                item.overlay.setMap(map);
+            });
+            
+            // 카운트 업데이트
+            document.getElementById('shown-count').textContent = buildings.length;
+            
+            // 전체 범위로 조정
+            fitMapToBounds();
+        }
+        
+        function fitMapToBounds() {
+            const bounds = new kakao.maps.LatLngBounds();
+            
+            buildings.forEach(building => {
+                bounds.extend(new kakao.maps.LatLng(building.lat, building.lon));
+            });
+            
+            map.setBounds(bounds);
+        }
+        
+        function fitMapToInvestigator(investigator) {
+            const bounds = new kakao.maps.LatLngBounds();
+            let count = 0;
+            
+            buildings.forEach(building => {
+                if (building.investigator === investigator) {
+                    bounds.extend(new kakao.maps.LatLng(building.lat, building.lon));
+                    count++;
+                }
+            });
+            
+            if (count > 0) {
+                map.setBounds(bounds);
+            }
+        }
+    </script>
+</body>
+</html>

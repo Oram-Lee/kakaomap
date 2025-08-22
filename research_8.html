@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <title>테헤란로 빌딩 현장조사 지도</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+        }
+        
+        #header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        #header h1 { 
+            margin: 0; 
+            font-size: 24px; 
+            font-weight: 500;
+        }
+        
+        #controls {
+            background: white;
+            padding: 10px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 500;
+            position: relative;
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .filter-btn .count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #e74c3c;
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        #map {
+            width: 100%;
+            height: calc(100vh - 120px);
+        }
+        
+        .building-label {
+            background: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 2px solid;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .building-label:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .info-window {
+            padding: 15px;
+            max-width: 300px;
+        }
+        
+        .info-window h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        .info-window p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+        }
+        
+        .info-window .investigator {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+        
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        #legend h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        #stats {
+            position: absolute;
+            top: 120px;
+            left: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 13px;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.2);
+            z-index: 9999;
+            text-align: center;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div>지도를 로딩중입니다...</div>
+    </div>
+    
+    <div id="header">
+        <h1>🏢 테헤란로 빌딩 현장조사 지도</h1>
+    </div>
+    
+    <div id="controls">
+        <button class="filter-btn active" onclick="showAll()">전체 보기</button>
+        <button class="filter-btn" onclick="filterByInvestigator('안준희')">안준희 <span class="count">23</span></button>
+        <button class="filter-btn" onclick="filterByInvestigator('남민준')">남민준 <span class="count">29</span></button>
+        <button class="filter-btn" onclick="filterByInvestigator('오시영')">오시영 <span class="count">15</span></button>
+        <button class="filter-btn" onclick="filterByInvestigator('조은아')">조은아 <span class="count">17</span></button>
+        <button class="filter-btn" onclick="filterByInvestigator('소나무')">소나무 <span class="count">25</span></button>
+        <button class="filter-btn" onclick="filterByInvestigator('심정원')">심정원 <span class="count">11</span></button>
+    </div>
+    
+    <div id="map"></div>
+    
+    <div id="stats">
+        <strong>총 빌딩:</strong> <span id="total-count">0</span>개<br>
+        <strong>표시된 빌딩:</strong> <span id="shown-count">0</span>개<br>
+        <strong>주소 변환중:</strong> <span id="geocoding-count">0</span>개
+    </div>
+    
+    <div id="legend">
+        <h4>담당자 색상</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f39c12;"></div>
+            <span>안준희</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #27ae60;"></div>
+            <span>남민준</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #9b59b6;"></div>
+            <span>오시영</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #1abc9c;"></div>
+            <span>조은아</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e67e22;"></div>
+            <span>소나무</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #34495e;"></div>
+            <span>심정원</span>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=1ac6eee9b1e4c2e0cc6f1d1ca1a6a559&libraries=services"></script>
+    <script>
+        const colors = {"이오람": "#e74c3c", "안준희": "#f39c12", "남민준": "#27ae60", "이슬비": "#3498db", "오시영": "#9b59b6", "조은아": "#1abc9c", "소나무": "#e67e22", "심정원": "#34495e"};
+        const buildingsByInvestigator = {
+  "남민준": [
+    {
+      "name": "L7 강남타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 415",
+      "investigator": "남민준"
+    },
+    {
+      "name": "강남파이낸스프라자",
+      "address_type": "도로명",
+      "address": "서울시 강남구 테헤란로 419",
+      "investigator": "남민준"
+    },
+    {
+      "name": "현대타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 423",
+      "investigator": "남민준"
+    },
+    {
+      "name": "태양빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 413",
+      "investigator": "남민준"
+    },
+    {
+      "name": "신일빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 425",
+      "investigator": "남민준"
+    },
+    {
+      "name": "위워크타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 427",
+      "investigator": "남민준"
+    },
+    {
+      "name": "승광빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로77길 17",
+      "investigator": "남민준"
+    },
+    {
+      "name": "원방빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 429",
+      "investigator": "남민준"
+    },
+    {
+      "name": "저스트코타워 (FL Tower)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 431",
+      "investigator": "남민준"
+    },
+    {
+      "name": "KT선릉타워 EAST",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 422",
+      "investigator": "남민준"
+    },
+    {
+      "name": "다봉타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 418",
+      "investigator": "남민준"
+    },
+    {
+      "name": "ES타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로77길 14",
+      "investigator": "남민준"
+    },
+    {
+      "name": "연봉빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 416",
+      "investigator": "남민준"
+    },
+    {
+      "name": "KT선릉타워west(구.메이플타워)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 420",
+      "investigator": "남민준"
+    },
+    {
+      "name": "L&B타워(엘엔비타워)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 414",
+      "investigator": "남민준"
+    },
+    {
+      "name": "대치타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 424",
+      "investigator": "남민준"
+    },
+    {
+      "name": "알레르망타워(구.T412)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 412",
+      "investigator": "남민준"
+    },
+    {
+      "name": "송현빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로79길 13",
+      "investigator": "남민준"
+    },
+    {
+      "name": "에이타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로79길 11",
+      "investigator": "남민준"
+    },
+    {
+      "name": "삼영빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 437",
+      "investigator": "남민준"
+    },
+    {
+      "name": "연당빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 439",
+      "investigator": "남민준"
+    },
+    {
+      "name": "H타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로70길 12",
+      "investigator": "남민준"
+    },
+    {
+      "name": "동부금융센터",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 432",
+      "investigator": "남민준"
+    },
+    {
+      "name": "송암3빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 441",
+      "investigator": "남민준"
+    },
+    {
+      "name": "애플트리타워(테리타워)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 443",
+      "investigator": "남민준"
+    },
+    {
+      "name": "동산빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로70길 16",
+      "investigator": "남민준"
+    },
+    {
+      "name": "동성빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로78길 14",
+      "investigator": "남민준"
+    },
+    {
+      "name": "MSA빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로78길 12",
+      "investigator": "남민준"
+    },
+    {
+      "name": "노벨빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로78길 16",
+      "investigator": "남민준"
+    }
+  ],
+  "소나무": [
+    {
+      "name": "KG타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로5길 7",
+      "investigator": "소나무"
+    },
+    {
+      "name": "한덕빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로7길 11",
+      "investigator": "소나무"
+    },
+    {
+      "name": "이즈타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 101",
+      "investigator": "소나무"
+    },
+    {
+      "name": "인춘재단빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 103",
+      "investigator": "소나무"
+    },
+    {
+      "name": "한국과학기술회관",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로7길 22",
+      "investigator": "소나무"
+    },
+    {
+      "name": "에스코빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로7길 7",
+      "investigator": "소나무"
+    },
+    {
+      "name": "서림빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 115",
+      "investigator": "소나무"
+    },
+    {
+      "name": "KB손해보험빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 117",
+      "investigator": "소나무"
+    },
+    {
+      "name": "건설회관",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로7길 12",
+      "investigator": "소나무"
+    },
+    {
+      "name": "캠브리지강남빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 110",
+      "investigator": "소나무"
+    },
+    {
+      "name": "여삼빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 123",
+      "investigator": "소나무"
+    },
+    {
+      "name": "역삼빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 114",
+      "investigator": "소나무"
+    },
+    {
+      "name": "동경빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 116",
+      "investigator": "소나무"
+    },
+    {
+      "name": "상경빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 120",
+      "investigator": "소나무"
+    },
+    {
+      "name": "해암빌딩(협진해운 사옥)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로4길 5",
+      "investigator": "소나무"
+    },
+    {
+      "name": "하나금융그룹 강남사옥",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 127",
+      "investigator": "소나무"
+    },
+    {
+      "name": "센터포인트 강남",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로8길 8",
+      "investigator": "소나무"
+    },
+    {
+      "name": "삼원타워(구 풍림빌딩)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 124",
+      "investigator": "소나무"
+    },
+    {
+      "name": "미림타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로4길 14",
+      "investigator": "소나무"
+    },
+    {
+      "name": "대공빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 126",
+      "investigator": "소나무"
+    },
+    {
+      "name": "강남WD빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로8길 13",
+      "investigator": "소나무"
+    },
+    {
+      "name": "타워300",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로2길 21",
+      "investigator": "소나무"
+    },
+    {
+      "name": "화인강남빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로8길 21",
+      "investigator": "소나무"
+    },
+    {
+      "name": "비전타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로2길 27",
+      "investigator": "소나무"
+    },
+    {
+      "name": "퍼스트역삼빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로8길 42",
+      "investigator": "소나무"
+    }
+  ],
+  "안준희": [
+    {
+      "name": "상경빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로51길 21",
+      "investigator": "안준희"
+    },
+    {
+      "name": "빅토리아빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 327",
+      "investigator": "안준희"
+    },
+    {
+      "name": "어반벤치",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 325",
+      "investigator": "안준희"
+    },
+    {
+      "name": "삼흥1빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 329",
+      "investigator": "안준희"
+    },
+    {
+      "name": "동훈타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 317",
+      "investigator": "안준희"
+    },
+    {
+      "name": "신도벤처타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 333",
+      "investigator": "안준희"
+    },
+    {
+      "name": "EGI엔지니어링공제 빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 335",
+      "investigator": "안준희"
+    },
+    {
+      "name": "선릉빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 339",
+      "investigator": "안준희"
+    },
+    {
+      "name": "남경센터빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 401",
+      "investigator": "안준희"
+    },
+    {
+      "name": "아이타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 326",
+      "investigator": "안준희"
+    },
+    {
+      "name": "동우빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 328",
+      "investigator": "안준희"
+    },
+    {
+      "name": "리치타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 403",
+      "investigator": "안준희"
+    },
+    {
+      "name": "한신인터밸리24",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 322",
+      "investigator": "안준희"
+    },
+    {
+      "name": "HJ타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 332",
+      "investigator": "안준희"
+    },
+    {
+      "name": "교정공제회 선릉빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 334",
+      "investigator": "안준희"
+    },
+    {
+      "name": "보광빌딩(본관)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 405",
+      "investigator": "안준희"
+    },
+    {
+      "name": "이케이타워(EK타워)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 407",
+      "investigator": "안준희"
+    },
+    {
+      "name": "제이제이빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로63길 20",
+      "investigator": "안준희"
+    },
+    {
+      "name": "동신빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 409",
+      "investigator": "안준희"
+    },
+    {
+      "name": "성담빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 411",
+      "investigator": "안준희"
+    },
+    {
+      "name": "대치나라빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 408",
+      "investigator": "안준희"
+    },
+    {
+      "name": "파라다이스 벤쳐타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로52길 21",
+      "investigator": "안준희"
+    },
+    {
+      "name": "금강타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 410",
+      "investigator": "안준희"
+    }
+  ],
+  "조은아": [
+    {
+      "name": "금강타워3",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로87길 35",
+      "investigator": "조은아"
+    },
+    {
+      "name": "융전빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로87길 33",
+      "investigator": "조은아"
+    },
+    {
+      "name": "엠타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로87길 29",
+      "investigator": "조은아"
+    },
+    {
+      "name": "매직킹덤빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로83길 18",
+      "investigator": "조은아"
+    },
+    {
+      "name": "동성빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로87길 21",
+      "investigator": "조은아"
+    },
+    {
+      "name": "동원타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로81길 13",
+      "investigator": "조은아"
+    },
+    {
+      "name": "서영빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로87길 13",
+      "investigator": "조은아"
+    },
+    {
+      "name": "하이브로빌딩(구 옥산)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 503",
+      "investigator": "조은아"
+    },
+    {
+      "name": "V-PLEX(브이플렉스)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 501",
+      "investigator": "조은아"
+    },
+    {
+      "name": "싹타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 505",
+      "investigator": "조은아"
+    },
+    {
+      "name": "위워크빌딩(구 일송빌딩)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 507",
+      "investigator": "조은아"
+    },
+    {
+      "name": "KB우준타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 447",
+      "investigator": "조은아"
+    },
+    {
+      "name": "엔씨(NC)타워1",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 509",
+      "investigator": "조은아"
+    },
+    {
+      "name": "한국도심공항터미널",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로87길 22",
+      "investigator": "조은아"
+    },
+    {
+      "name": "본솔빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 445",
+      "investigator": "조은아"
+    },
+    {
+      "name": "해성2빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 508",
+      "investigator": "조은아"
+    },
+    {
+      "name": "포스코센터",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 440",
+      "investigator": "조은아"
+    }
+  ],
+  "오시영": [
+    {
+      "name": "케이타워(K-Tower)",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 513",
+      "investigator": "오시영"
+    },
+    {
+      "name": "파르나스타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 521",
+      "investigator": "오시영"
+    },
+    {
+      "name": "신안빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 512",
+      "investigator": "오시영"
+    },
+    {
+      "name": "삼흥2빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 514",
+      "investigator": "오시영"
+    },
+    {
+      "name": "루첸타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 510",
+      "investigator": "오시영"
+    },
+    {
+      "name": "섬유센터",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 518",
+      "investigator": "오시영"
+    },
+    {
+      "name": "삼안빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 520",
+      "investigator": "오시영"
+    },
+    {
+      "name": "홍우빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 522",
+      "investigator": "오시영"
+    },
+    {
+      "name": "대경타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로86길 13",
+      "investigator": "오시영"
+    },
+    {
+      "name": "KR빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로84길 12",
+      "investigator": "오시영"
+    },
+    {
+      "name": "호쿠쇼타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로88길 15",
+      "investigator": "오시영"
+    },
+    {
+      "name": "신도빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로88길 14",
+      "investigator": "오시영"
+    },
+    {
+      "name": "동구빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로86길 15",
+      "investigator": "오시영"
+    },
+    {
+      "name": "시몬빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로84길 15",
+      "investigator": "오시영"
+    },
+    {
+      "name": "세안빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로88길 17",
+      "investigator": "오시영"
+    }
+  ],
+  "심정원": [
+    {
+      "name": "캐논케이타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 607",
+      "investigator": "심정원"
+    },
+    {
+      "name": "한진빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로103길 6",
+      "investigator": "심정원"
+    },
+    {
+      "name": "슈페리어타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 528",
+      "investigator": "심정원"
+    },
+    {
+      "name": "글라스타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 534",
+      "investigator": "심정원"
+    },
+    {
+      "name": "케이티앤지 대치타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로98길 8",
+      "investigator": "심정원"
+    },
+    {
+      "name": "EG빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로98길 11",
+      "investigator": "심정원"
+    },
+    {
+      "name": "미래에셋타워A동",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 620",
+      "investigator": "심정원"
+    },
+    {
+      "name": "덕명빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로 625",
+      "investigator": "심정원"
+    },
+    {
+      "name": "서경빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로108길 22",
+      "investigator": "심정원"
+    },
+    {
+      "name": "대치엠디엠빌딩",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로108길 42",
+      "investigator": "심정원"
+    },
+    {
+      "name": "동일타워",
+      "address_type": "도로명",
+      "address": "서울 강남구 테헤란로114길 38",
+      "investigator": "심정원"
+    }
+  ]
+};
+        
+        let map;
+        let geocoder;
+        let overlays = [];
+        let currentFilter = null;
+        let totalBuildings = 0;
+        let geocodingQueue = [];
+        let geocodingIndex = 0;
+        
+        // 모든 빌딩을 단일 배열로 변환
+        let allBuildings = [];
+        Object.keys(buildingsByInvestigator).forEach(investigator => {
+            buildingsByInvestigator[investigator].forEach(building => {
+                allBuildings.push(building);
+                totalBuildings++;
+            });
+        });
+        
+        document.getElementById('total-count').textContent = totalBuildings;
+        document.getElementById('geocoding-count').textContent = totalBuildings;
+        
+        function initMap() {
+            const container = document.getElementById('map');
+            const options = {
+                center: new kakao.maps.LatLng(37.5050, 127.0500),
+                level: 6
+            };
+            
+            map = new kakao.maps.Map(container, options);
+            geocoder = new kakao.maps.services.Geocoder();
+            
+            // 컨트롤 추가
+            map.addControl(new kakao.maps.MapTypeControl(), kakao.maps.ControlPosition.TOPRIGHT);
+            map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+            
+            // 지오코딩 시작
+            startGeocoding();
+        }
+        
+        function startGeocoding() {
+            console.log('지오코딩 시작...');
+            geocodeNext();
+        }
+        
+        function geocodeNext() {
+            if (geocodingIndex >= allBuildings.length) {
+                console.log('모든 지오코딩 완료!');
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('geocoding-count').textContent = '완료';
+                fitMapToBounds();
+                return;
+            }
+            
+            const building = allBuildings[geocodingIndex];
+            const remaining = allBuildings.length - geocodingIndex;
+            document.getElementById('geocoding-count').textContent = remaining;
+            
+            geocoder.addressSearch(building.address, function(result, status) {
+                if (status === kakao.maps.services.Status.OK) {
+                    const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+                    building.lat = result[0].y;
+                    building.lon = result[0].x;
+                    createBuildingMarker(building, coords);
+                    console.log(`✓ ${building.name}: ${building.address}`);
+                } else {
+                    console.log(`✗ ${building.name}: 주소 검색 실패 - ${building.address}`);
+                }
+                
+                geocodingIndex++;
+                
+                // 다음 지오코딩 (딜레이 추가)
+                setTimeout(geocodeNext, 100);
+            });
+        }
+        
+        function createBuildingMarker(building, position) {
+            const color = colors[building.investigator] || '#999999';
+            
+            // 빌딩명 라벨
+            const content = `<div class="building-label" style="border-color: ${color}; color: ${color};">${building.name}</div>`;
+            
+            const customOverlay = new kakao.maps.CustomOverlay({
+                position: position,
+                content: content,
+                yAnchor: 0.5,
+                clickable: true,
+                zIndex: 1
+            });
+            
+            customOverlay.setMap(map);
+            
+            // 클릭 이벤트
+            const overlayContent = customOverlay.getContent();
+            if (typeof overlayContent === 'string') {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = overlayContent;
+                overlayContent = tempDiv.firstChild;
+            }
+            
+            overlayContent.addEventListener('click', function() {
+                showInfoWindow(building, position);
+            });
+            
+            // 오버레이 저장
+            overlays.push({
+                overlay: customOverlay,
+                building: building
+            });
+            
+            updateShownCount();
+        }
+        
+        function showInfoWindow(building, position) {
+            const color = colors[building.investigator] || '#999999';
+            
+            const content = `
+                <div class="info-window">
+                    <h3>${building.name}</h3>
+                    <p><strong>주소:</strong><br>${building.address}</p>
+                    <p><strong>주소 유형:</strong> ${building.address_type || '도로명'}주소</p>
+                    <div class="investigator" style="background: ${color};">
+                        담당: ${building.investigator}
+                    </div>
+                </div>
+            `;
+            
+            const infowindow = new kakao.maps.InfoWindow({
+                content: content,
+                removable: true
+            });
+            
+            const marker = new kakao.maps.Marker({
+                position: position
+            });
+            
+            infowindow.open(map, marker);
+        }
+        
+        function filterByInvestigator(investigator) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            currentFilter = investigator;
+            
+            overlays.forEach(item => {
+                if (item.building.investigator === investigator) {
+                    item.overlay.setMap(map);
+                } else {
+                    item.overlay.setMap(null);
+                }
+            });
+            
+            updateShownCount();
+            fitMapToInvestigator(investigator);
+        }
+        
+        function showAll() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('.filter-btn').classList.add('active');
+            
+            currentFilter = null;
+            
+            overlays.forEach(item => {
+                item.overlay.setMap(map);
+            });
+            
+            updateShownCount();
+            fitMapToBounds();
+        }
+        
+        function updateShownCount() {
+            let count = 0;
+            overlays.forEach(item => {
+                if (!currentFilter || item.building.investigator === currentFilter) {
+                    count++;
+                }
+            });
+            document.getElementById('shown-count').textContent = count;
+        }
+        
+        function fitMapToBounds() {
+            if (overlays.length === 0) return;
+            
+            const bounds = new kakao.maps.LatLngBounds();
+            
+            overlays.forEach(item => {
+                if (!currentFilter || item.building.investigator === currentFilter) {
+                    const position = item.overlay.getPosition();
+                    bounds.extend(position);
+                }
+            });
+            
+            map.setBounds(bounds);
+        }
+        
+        function fitMapToInvestigator(investigator) {
+            const bounds = new kakao.maps.LatLngBounds();
+            let count = 0;
+            
+            overlays.forEach(item => {
+                if (item.building.investigator === investigator) {
+                    const position = item.overlay.getPosition();
+                    bounds.extend(position);
+                    count++;
+                }
+            });
+            
+            if (count > 0) {
+                map.setBounds(bounds);
+            }
+        }
+        
+        // 지도 초기화
+        window.onload = function() {
+            initMap();
+        };
+    </script>
+</body>
+</html>
